@@ -40,7 +40,7 @@ export type KeyboardLayoutType = "qwerty" | "dvorak" | "colemak";
 export function useTypingTest() {
   const [mode, setMode] = useState<TestMode>("time");
   const [limit, setLimit] = useState<number>(30); // 30s or 25 words by default
-  const [soundType, setSoundType] = useState<SoundType>("click");
+  const [soundType, setSoundType] = useState<SoundType>("natural");
   const [caretType, setCaretType] = useState<CaretType>("smooth");
   const [layout, setLayout] = useState<KeyboardLayoutType>("qwerty");
   
@@ -168,7 +168,6 @@ export function useTypingTest() {
 
   // Load initial words
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     restartTest();
   }, [mode, limit, restartTest]);
 
@@ -229,8 +228,13 @@ export function useTypingTest() {
     const targetText = words.join(" ");
     const now = Date.now();
     
-    // Play synthesizer audio feedback click
-    playKeySound(soundType);
+    // Feedback Trigger
+    if (char === "Backspace") {
+      playKeySound(soundType, char, true);
+    } else if (char.length === 1) {
+      const targetChar = targetText[typedInput.length] || "";
+      playKeySound(soundType, char, char === targetChar);
+    }
 
     // Initial state trigger
     if (status === "idle") {
@@ -246,16 +250,7 @@ export function useTypingTest() {
             const nextTime = prev - 1;
             setElapsedTime((el) => {
               const nextEl = el + 1;
-              
-              // Calculate dynamic middle WPM to draw real-time chart history
-              setWpm((currentWpm) => {
-                // Compute current correct character count
-                // Get typed input at this instant (using useRef/state is tricky, we read it from state)
-                return currentWpm; // Handled in state effect below
-              });
-              
               if (nextTime <= 0) {
-                // Complete test
                 setTypedInput((input) => {
                   completeTest(input, nextEl);
                   return input;
@@ -268,7 +263,6 @@ export function useTypingTest() {
           });
         }, 1000);
       } else {
-        // Words, Quote or Custom modes: Count-up timer
         timerIntervalRef.current = setInterval(() => {
           setElapsedTime((el) => el + 1);
         }, 1000);
@@ -286,34 +280,20 @@ export function useTypingTest() {
     }
 
     // Normal typing entry
-    if (char.length !== 1) return; // Prevent modifiers (Shift, Control, etc.)
+    if (char.length !== 1) return;
 
     setTypedInput((prev) => {
       const nextInput = prev + char;
       const targetChar = targetText[prev.length] || "";
       const isCorrect = char === targetChar;
 
-      // Telemetry mapping
       const latency = lastKeyTimeRef.current > 0 ? (now - lastKeyTimeRef.current) : 0;
-      
-      const keystrokeTelemetry: KeyTelemetry = {
-        key: targetChar,
-        typedKey: char,
-        timestamp: now,
-        latency,
-        isCorrect
-      };
-      
-      telemetryRef.current.push(keystrokeTelemetry);
+      telemetryRef.current.push({ key: targetChar, typedKey: char, timestamp: now, latency, isCorrect });
       lastKeyTimeRef.current = now;
 
-      if (!isCorrect) {
-        setRawMistakes((m) => m + 1);
-      }
+      if (!isCorrect) setRawMistakes((m) => m + 1);
 
-      // Check if words/quote test completes (user typed all text)
       if (mode !== "time" && nextInput.length >= targetText.length) {
-        // Run on next tick
         setTimeout(() => {
           setElapsedTime((el) => {
             completeTest(nextInput, el);
@@ -324,57 +304,26 @@ export function useTypingTest() {
 
       return nextInput;
     });
-  }, [status, words, mode, limit, soundType, completeTest]);
+  }, [status, words, mode, limit, soundType, completeTest, typedInput]);
 
   // Periodic calculator for live graph history (every second)
   useEffect(() => {
     if (status !== "typing" || elapsedTime <= 0) return;
-    
     const targetText = words.join(" ");
     let correctCount = 0;
     for (let i = 0; i < typedInput.length; i++) {
       if (typedInput[i] === targetText[i]) correctCount++;
     }
-    
-    const minutes = elapsedTime / 60;
-    const currentWpm = Math.round((correctCount / 5) / minutes);
-    const currentAccuracy = typedInput.length > 0 
-      ? Math.round((correctCount / typedInput.length) * 100) 
-      : 100;
-      
-    /* eslint-disable react-hooks/set-state-in-effect */
+    const currentWpm = Math.round((correctCount / 5) / (elapsedTime / 60 || 0.01));
+    const currentAccuracy = typedInput.length > 0 ? Math.round((correctCount / typedInput.length) * 100) : 100;
     setWpm(currentWpm);
     setAccuracy(currentAccuracy);
-    /* eslint-enable react-hooks/set-state-in-effect */
-    
-    // Add data point to history chart data
     setHistory((prev) => [...prev, { time: elapsedTime, wpm: currentWpm, accuracy: currentAccuracy }]);
   }, [elapsedTime, typedInput, words, status]);
 
   return {
-    mode,
-    limit,
-    soundType,
-    caretType,
-    layout,
-    words,
-    typedInput,
-    status,
-    timeLeft,
-    elapsedTime,
-    rawMistakes,
-    wpm,
-    accuracy,
-    history,
+    mode, limit, soundType, caretType, layout, words, typedInput, status, timeLeft, elapsedTime, rawMistakes, wpm, accuracy, history,
     getTelemetry: () => telemetryRef.current,
-    
-    // Setters / Actions
-    setMode: updateMode,
-    setLimit: updateLimit,
-    setSoundType: updateSoundType,
-    setCaretType: updateCaretType,
-    setLayout: updateLayout,
-    restartTest,
-    registerKeystroke
+    setMode: updateMode, setLimit: updateLimit, setSoundType: updateSoundType, setCaretType: updateCaretType, setLayout: updateLayout, restartTest, registerKeystroke
   };
 }

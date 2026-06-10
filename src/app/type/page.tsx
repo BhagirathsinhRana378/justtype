@@ -243,13 +243,10 @@ export default function TypePage() {
                   onChange={(e) => setSoundType(e.target.value as any)}
                   className="bg-transparent text-muted hover:text-foreground text-[13.5px] outline-none border-none cursor-pointer pr-1"
                 >
-                  <option value="click" className="bg-card">Click</option>
-                  <option value="mechanical" className="bg-card">Clack</option>
-                  <option value="bubble" className="bg-card">Bubble</option>
-                  <option value="ink" className="bg-card">Ink</option>
-                  <option value="wooden" className="bg-card">Wood</option>
-                  <option value="metal" className="bg-card">Metal</option>
-                  <option value="silent" className="bg-card">Mute</option>
+                  <option value="natural" className="bg-card">Natural</option>
+                  <option value="signature" className="bg-card">Signature</option>
+                  <option value="typeist" className="bg-card">Typeist</option>
+                  <option value="silent" className="bg-card">Silent</option>
                 </select>
               </div>
 
