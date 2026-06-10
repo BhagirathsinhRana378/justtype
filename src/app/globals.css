@@ -180,8 +180,13 @@ body {
   50% { opacity: 0; }
 }
 
+@keyframes smooth-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.15; }
+}
+
 .caret-blink {
-  animation: blink 1.0s step-end infinite;
+  animation: smooth-blink 1.1s ease-in-out infinite;
 }
 
 /* Smooth transition for WPM dashboard elements */

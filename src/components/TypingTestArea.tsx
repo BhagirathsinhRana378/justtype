@@ -215,11 +215,19 @@ export default function TypingTestArea({
       <div
         ref={containerRef}
         onClick={focusInput}
-        className="w-full relative cursor-text select-none outline-none focus-within:ring-2 focus-within:ring-primary/10 focus-within:border-primary transition-all-smooth border border-border-hairline/80 bg-card/25 rounded-lg py-2 md:py-3 lg:py-4 px-4 overflow-hidden h-[4.5rem] md:h-[7.5rem] lg:h-[10rem]"
+        className="w-full relative cursor-text select-none outline-none overflow-hidden"
+        style={{
+          width: "min(1080px, 86vw)",
+          height: "calc(4.8 * clamp(30px, 2.4vw, 38px))",
+          borderRadius: "0px",
+          padding: "0px",
+          background: "transparent",
+          border: "none",
+        }}
       >
         {/* Unfocused overlay */}
         {!isFocused && status !== "completed" && (
-          <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] flex items-center justify-center rounded-lg z-10 animate-fadeIn pointer-events-none">
+          <div className="absolute inset-0 bg-background/50 backdrop-blur-[1px] flex items-center justify-center z-10 animate-fadeIn pointer-events-none">
             <span className="text-primary text-sm font-serif italic select-none">
               ✦ Click here or press any key to focus...
             </span>
@@ -247,28 +255,50 @@ export default function TypingTestArea({
           className="w-full relative transition-transform duration-200 ease-out"
           style={{ transform: `translateY(${translateY}px)` }}
         >
-          <div className="font-mono text-xl md:text-2xl lg:text-3xl leading-[1.75rem] md:leading-[2rem] lg:leading-[2.5rem] text-muted-soft flex flex-wrap tracking-wide">
+          <div 
+            className="font-mono text-muted-soft flex flex-wrap tracking-wide"
+            style={{
+              fontSize: "clamp(30px, 2.4vw, 38px)",
+              lineHeight: "1.6",
+            }}
+          >
             {words.map((word, wordIndex) => {
               const wordChars = word.split("");
               const isLastWord = wordIndex === words.length - 1;
+              const isTypedWord = wordIndex < activeWordIndex;
+              const isActiveWord = wordIndex === activeWordIndex;
 
               return (
                 <span 
                   key={wordIndex} 
                   ref={el => { wordRefs.current[wordIndex] = el; }}
-                  className="inline-flex mr-[0.55em] mb-3 relative"
+                  className="inline-flex relative"
+                  style={{ marginRight: "0.26em" }}
                 >
                   {wordChars.map((char, charIndex) => {
                     const absoluteIndex = charCounter++;
-                    let charClass = "text-muted-soft";
+                    let charClass = "";
                     const isCurrent = absoluteIndex === currentInputLength;
 
-                    if (absoluteIndex < currentInputLength) {
+                    if (status === "idle") {
+                      charClass = "text-muted-soft/65 transition-all duration-300";
+                    } else if (absoluteIndex < currentInputLength) {
                       const typedChar = typedInput[absoluteIndex];
                       if (typedChar === char) {
-                        charClass = "text-foreground font-semibold";
+                        charClass = isTypedWord 
+                          ? "text-muted-soft/80 font-medium transition-colors duration-200" 
+                          : "text-foreground/90 font-medium transition-colors duration-200";
                       } else {
-                        charClass = "text-error border-b border-error";
+                        charClass = "text-error border-b border-error/50 transition-colors duration-150";
+                      }
+                    } else {
+                      // Character not yet typed
+                      if (isActiveWord) {
+                        charClass = isCurrent
+                          ? "text-foreground font-bold transition-all duration-150"
+                          : "text-muted-soft/90 font-medium transition-colors duration-250";
+                      } else {
+                        charClass = "text-muted-soft/60 transition-colors duration-300";
                       }
                     }
 
@@ -293,16 +323,20 @@ export default function TypingTestArea({
                   {/* Spaces */}
                   {!isLastWord && (() => {
                     const spaceAbsoluteIndex = charCounter++;
-                    let spaceClass = "text-muted-soft";
+                    let spaceClass = "text-muted-soft/60 transition-colors duration-300";
                     const isCurrent = spaceAbsoluteIndex === currentInputLength;
 
-                    if (spaceAbsoluteIndex < currentInputLength) {
+                    if (status === "idle") {
+                      spaceClass = "text-muted-soft/65 transition-all duration-300";
+                    } else if (spaceAbsoluteIndex < currentInputLength) {
                       const typedChar = typedInput[spaceAbsoluteIndex];
                       if (typedChar === " ") {
-                        spaceClass = "text-foreground";
+                        spaceClass = "text-foreground/90 transition-colors duration-200";
                       } else {
-                        spaceClass = "bg-error/20 text-error";
+                        spaceClass = "bg-error/20 text-error transition-colors duration-150";
                       }
+                    } else if (isCurrent && isFocused) {
+                      spaceClass = "text-foreground/80 transition-all duration-150";
                     }
 
                     return (
@@ -332,7 +366,7 @@ export default function TypingTestArea({
 
       {/* 3. FIXED BOTTOM SECTION: Virtual Keyboard (Heatmap enabled) */}
       {status !== "completed" && (
-        <div className="w-full max-w-xl mt-6 animate-fadeIn">
+        <div className="w-full max-w-[620px] mt-4 animate-fadeIn">
           <VirtualKeyboard 
             layout={layout} 
             pressedKeys={pressedKeys} 
@@ -344,7 +378,7 @@ export default function TypingTestArea({
 
       {/* Restart Info row (Compact footer) */}
       {status !== "completed" && (
-        <div className="mt-4 flex items-center gap-4 text-xs text-muted-soft select-none font-mono">
+        <div className="mt-3 flex items-center gap-4 text-xs text-muted-soft select-none font-mono">
           <button
             onClick={() => {
               restartTest();
