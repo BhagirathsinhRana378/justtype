@@ -4,6 +4,7 @@ import "./globals.css";
 import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
 import Link from "next/link";
+import Script from "next/script";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,10 +26,10 @@ const cormorantGaramond = Cormorant_Garamond({
 export const metadata: Metadata = {
   title: "JustType | AI-Powered Premium Typing Test",
   description: "An elegant, AI-driven typing test platform that detects weak keys, predicts typing growth, and designs custom coach lessons to boost your word-per-minute speed.",
-  keywords: ["typing test", "wpm tracker", "typing accuracy", "keyboard layout training", "AI coach"],
+  keywords: ["typing test", "wpm tracker", "typing accuracy", "keyboard  training", "AI coach"],
 };
 
-export default function RootLayout({
+export default function Root({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -38,8 +39,11 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} ${cormorantGaramond.variable} h-full antialiased`}
     >
-      <head>
-        <script
+      <head />
+      <body className="min-h-full flex flex-col bg-background text-foreground font-sans selection:bg-primary selection:text-white transition-colors duration-300">
+        <Script
+          id="theme-strategy"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
@@ -48,14 +52,12 @@ export default function RootLayout({
                   document.documentElement.setAttribute('data-theme', theme);
                   
                   const font = localStorage.getItem('justtype_config_font') || 'sans';
-                  document.documentElement.className = document.documentElement.className + ' font-setting-' + font;
+                  document.documentElement.classList.add('font-setting-' + font);
                 } catch (e) {}
               })();
             `,
           }}
         />
-      </head>
-      <body className="min-h-full flex flex-col bg-background text-foreground font-sans selection:bg-primary selection:text-white transition-colors duration-300">
         <NavBar />
         <main className="flex-1 flex flex-col w-full bg-background text-foreground transition-colors duration-300">
           {children}
@@ -65,4 +67,3 @@ export default function RootLayout({
     </html>
   );
 }
-

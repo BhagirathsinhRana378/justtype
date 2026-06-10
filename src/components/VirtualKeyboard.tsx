@@ -66,38 +66,36 @@ export default function VirtualKeyboard({
       (normalizedKey === "space" && activePressedSet.has(" "));
       
     if (isPressed) {
-      return "bg-primary text-white border border-primary border-b-[0px] translate-y-[2.5px] scale-[0.95] shadow-[inset_0_1.5px_3px_rgba(0,0,0,0.15),0_0_16px_color-mix(in_srgb,var(--primary)_30%,transparent)] transition-none";
+      return "bg-primary text-white border border-primary border-b-[0.5px] translate-y-[2px] scale-[0.97] shadow-[inset_0_1.5px_3.5px_rgba(0,0,0,0.12)] transition-none";
     }
 
     const isSpace = normalizedKey === "space";
 
     if (heatmapMode === "none" || !heatmapData[normalizedKey]) {
-      return isSpace
-        ? "bg-card border border-border-hairline border-b-[2.5px] border-b-muted/30 text-muted hover:text-foreground hover:bg-card-elevated hover:-translate-y-0.5 hover:border-b-[3px] shadow-sm transition-all duration-150"
-        : "bg-card border border-border-hairline border-b-[2.5px] border-b-muted/30 text-muted hover:text-foreground hover:bg-card-elevated hover:-translate-y-0.5 hover:border-b-[3px] shadow-sm transition-all duration-150";
+      return "bg-[color-mix(in_srgb,var(--card-elevated)_82%,var(--muted)_18%)] border border-[color-mix(in_srgb,var(--border-hairline)_70%,var(--muted)_30%)] border-b-[2.5px] border-b-[color-mix(in_srgb,var(--border-hairline)_40%,var(--muted)_60%)] text-[color-mix(in_srgb,var(--muted)_85%,var(--foreground)_15%)] hover:text-foreground hover:bg-[color-mix(in_srgb,var(--card-elevated)_92%,var(--foreground)_8%)] hover:-translate-y-0.5 hover:border-b-[3px] shadow-[0_1px_1px_rgba(0,0,0,0.01)] transition-all duration-150";
     }
 
     const keyStats = heatmapData[normalizedKey];
 
     if (heatmapMode === "errors" && keyStats.errorRate !== undefined) {
       const err = keyStats.errorRate;
-      if (err === 0) return "bg-success/12 border border-success/40 border-b-[2.5px] border-b-success/50 text-success hover:bg-success/20 shadow-sm";
-      if (err < 0.1) return "bg-error/8 border border-error/30 border-b-[2.5px] border-b-error/40 text-foreground hover:bg-error/15 shadow-sm";
-      if (err < 0.25) return "bg-error/18 border border-error/45 border-b-[2.5px] border-b-error/55 text-foreground hover:bg-error/25 shadow-sm";
-      if (err < 0.5) return "bg-error/35 border border-error/60 border-b-[2.5px] border-b-error/70 text-white hover:bg-error/45 shadow-sm";
-      return "bg-error/70 border border-error/90 border-b-[2.5px] border-b-error/95 text-white shadow-sm";
+      if (err === 0) return "bg-[color-mix(in_srgb,var(--card-elevated)_82%,var(--success)_18%)] border border-[color-mix(in_srgb,var(--border-hairline)_65%,var(--success)_35%)] border-b-[2.5px] border-b-[color-mix(in_srgb,var(--border-hairline)_35%,var(--success)_65%)] text-success hover:bg-success/20 shadow-xs";
+      if (err < 0.1) return "bg-[color-mix(in_srgb,var(--card-elevated)_88%,var(--error)_12%)] border border-[color-mix(in_srgb,var(--border-hairline)_70%,var(--error)_30%)] border-b-[2.5px] border-b-[color-mix(in_srgb,var(--border-hairline)_45%,var(--error)_55%)] text-foreground hover:bg-error/15 shadow-xs";
+      if (err < 0.25) return "bg-[color-mix(in_srgb,var(--card-elevated)_78%,var(--error)_22%)] border border-[color-mix(in_srgb,var(--border-hairline)_60%,var(--error)_40%)] border-b-[2.5px] border-b-[color-mix(in_srgb,var(--border-hairline)_30%,var(--error)_70%)] text-foreground hover:bg-error/25 shadow-xs";
+      if (err < 0.5) return "bg-[color-mix(in_srgb,var(--card-elevated)_65%,var(--error)_35%)] border border-[color-mix(in_srgb,var(--border-hairline)_50%,var(--error)_50%)] border-b-[2.5px] border-b-[color-mix(in_srgb,var(--border-hairline)_20%,var(--error)_80%)] text-white hover:bg-error/45 shadow-xs";
+      return "bg-[color-mix(in_srgb,var(--card-elevated)_40%,var(--error)_60%)] border border-[color-mix(in_srgb,var(--border-hairline)_20%,var(--error)_80%)] border-b-[2.5px] border-b-[color-mix(in_srgb,var(--border-hairline)_10%,var(--error)_90%)] text-white shadow-xs";
     }
 
     if (heatmapMode === "latency" && keyStats.avgLatency !== undefined) {
       const delay = keyStats.avgLatency;
-      if (delay < 120) return "bg-success/12 border border-success/40 border-b-[2.5px] border-b-success/50 text-success hover:bg-success/20 shadow-sm";
-      if (delay < 180) return "bg-accent-amber/10 border border-accent-amber/35 border-b-[2.5px] border-b-accent-amber/40 text-accent-amber hover:bg-accent-amber/18 shadow-sm";
-      if (delay < 280) return "bg-accent-amber/20 border border-accent-amber/50 border-b-[2.5px] border-b-accent-amber/60 text-accent-amber hover:bg-accent-amber/30 shadow-sm";
-      if (delay < 450) return "bg-accent-amber/40 border border-accent-amber/65 border-b-[2.5px] border-b-accent-amber/75 text-white hover:bg-accent-amber/50 shadow-sm";
-      return "bg-accent-amber/70 border border-accent-amber/90 border-b-[2.5px] border-b-accent-amber/95 text-white shadow-sm";
+      if (delay < 120) return "bg-[color-mix(in_srgb,var(--card-elevated)_82%,var(--success)_18%)] border border-[color-mix(in_srgb,var(--border-hairline)_65%,var(--success)_35%)] border-b-[2.5px] border-b-[color-mix(in_srgb,var(--border-hairline)_35%,var(--success)_65%)] text-success hover:bg-success/20 shadow-xs";
+      if (delay < 180) return "bg-[color-mix(in_srgb,var(--card-elevated)_86%,var(--accent-amber)_14%)] border border-[color-mix(in_srgb,var(--border-hairline)_65%,var(--accent-amber)_35%)] border-b-[2.5px] border-b-[color-mix(in_srgb,var(--border-hairline)_35%,var(--accent-amber)_65%)] text-accent-amber hover:bg-accent-amber/18 shadow-xs";
+      if (delay < 280) return "bg-[color-mix(in_srgb,var(--card-elevated)_78%,var(--accent-amber)_22%)] border border-[color-mix(in_srgb,var(--border-hairline)_60%,var(--accent-amber)_40%)] border-b-[2.5px] border-b-[color-mix(in_srgb,var(--border-hairline)_30%,var(--accent-amber)_70%)] text-accent-amber hover:bg-accent-amber/30 shadow-xs";
+      if (delay < 450) return "bg-[color-mix(in_srgb,var(--card-elevated)_60%,var(--accent-amber)_40%)] border border-[color-mix(in_srgb,var(--border-hairline)_45%,var(--accent-amber)_55%)] border-b-[2.5px] border-b-[color-mix(in_srgb,var(--border-hairline)_20%,var(--accent-amber)_80%)] text-white hover:bg-accent-amber/50 shadow-xs";
+      return "bg-[color-mix(in_srgb,var(--card-elevated)_35%,var(--accent-amber)_65%)] border border-[color-mix(in_srgb,var(--border-hairline)_20%,var(--accent-amber)_80%)] border-b-[2.5px] border-b-[color-mix(in_srgb,var(--border-hairline)_10%,var(--accent-amber)_90%)] text-white shadow-xs";
     }
 
-    return "bg-card/50 border border-border-hairline/75 border-b-[2px] border-b-border/40 text-muted shadow-[0_1px_2px_rgba(0,0,0,0.015)]";
+    return "bg-card-elevated border border-border-hairline border-b-[2px] border-b-border/40 text-muted shadow-xs";
   };
 
   const formatKeyLabel = (key: string) => {
@@ -106,12 +104,12 @@ export default function VirtualKeyboard({
   };
 
   return (
-    <div className="w-full bg-card/20 backdrop-blur-xs border border-border-hairline/30 rounded-[22px] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.01)] select-none">
-      <div className="w-full flex flex-col gap-[6px] [--key-width:32px] sm:[--key-width:40px]">
+    <div className="w-[115%] -mx-[7.5%] bg-[color-mix(in_srgb,var(--card-elevated)_25%,#0a0a09_75%)] border border-white/10 rounded-[32px] p-8 shadow-2xl select-none backdrop-blur-2xl ring-1 ring-white/5">
+      <div className="w-full flex flex-col gap-[12px] [--key-width:46px] sm:[--key-width:62px]">
         {keyboardRows.map((row, rowIndex) => (
           <div
             key={rowIndex}
-            className="flex justify-center gap-1.5 w-full"
+            className="flex justify-center gap-2.5 w-full"
             style={{
               paddingLeft: rowIndex === 1 ? "calc(var(--key-width) / 2)" : rowIndex === 2 ? "var(--key-width)" : "0",
             }}
@@ -123,9 +121,9 @@ export default function VirtualKeyboard({
               return (
                 <div
                   key={key}
-                  className={`flex items-center justify-center font-mono text-[9px] sm:text-[11.5px] font-semibold border rounded-[8px] transition-all duration-150 ease-out ${styleClass}`}
+                  className={`flex items-center justify-center font-mono text-[11px] sm:text-[14px] font-extrabold border rounded-[12px] transition-all duration-250 ease-out shadow-md ${styleClass}`}
                   style={{
-                    width: isSpace ? "calc(var(--key-width) * 5.8)" : "var(--key-width)",
+                    width: isSpace ? "calc(var(--key-width) * 6.8)" : "var(--key-width)",
                     height: "var(--key-width)",
                   }}
                 >

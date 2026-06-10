@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, MousePointerClick } from "lucide-react";
 import { CaretType, KeyboardLayoutType } from "@/hooks/useTypingTest";
 
 interface TypingTestAreaProps {
@@ -215,8 +215,10 @@ export default function TypingTestArea({
     if (activeWordEl) {
       const Y = activeWordEl.offsetTop;
       const H = activeWordEl.offsetHeight;
-      if (Y > H) {
-        setTranslateY(-(Y - H));
+      // We want Y to be at position H (the middle line)
+      // So Y + translateY = H => translateY = H - Y
+      if (Y >= H) {
+        setTranslateY(H - Y);
       } else {
         setTranslateY(0);
       }
@@ -230,8 +232,8 @@ export default function TypingTestArea({
       if (activeWordEl) {
         const Y = activeWordEl.offsetTop;
         const H = activeWordEl.offsetHeight;
-        if (Y > H) {
-          setTranslateY(-(Y - H));
+        if (Y >= H) {
+          setTranslateY(H - Y);
         } else {
           setTranslateY(0);
         }
@@ -252,20 +254,23 @@ export default function TypingTestArea({
         onClick={focusInput}
         className="w-full relative cursor-text select-none outline-none overflow-hidden"
         style={{
-          width: "min(1080px, 86vw)",
-          height: "calc(4.95 * clamp(34px, 2.8vw, 44px))",
-          borderRadius: "0px",
-          padding: "0px",
+          width: "min(1500px, 98vw)",
+          height: "calc(3 * 1.6 * clamp(32px, 2.6vw, 42px) + 32px)", // Exactly 3 lines + padding
+          borderRadius: "16px",
+          padding: "16px 0",
           background: "transparent",
           border: "none",
         }}
       >
         {/* Unfocused overlay */}
         {!isFocused && status !== "completed" && (
-          <div className="absolute inset-0 bg-background/50 backdrop-blur-[1px] flex items-center justify-center z-10 animate-fadeIn pointer-events-none">
-            <span className="text-primary text-sm font-serif italic select-none">
-              ✦ Click here or press any key to focus...
-            </span>
+          <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] flex items-center justify-center z-10 animate-fadeIn pointer-events-none transition-all duration-300">
+            <div className="flex flex-col items-center gap-3">
+              <MousePointerClick className="w-5 h-5 text-primary animate-bounce" />
+              <span className="text-primary text-base font-serif italic select-none tracking-wide">
+                ✦ Click to focus and start typing...
+              </span>
+            </div>
           </div>
         )}
 
@@ -287,46 +292,48 @@ export default function TypingTestArea({
 
         {/* Translated words board */}
         <div 
-          className="w-full relative transition-transform duration-200 ease-out words-board"
+          className="w-full relative transition-transform duration-[300ms] cubic-bezier(0.22, 1, 0.36, 1) words-board"
           style={{ transform: `translateY(${translateY}px)` }}
         >
           {/* 1. SINGLE ABSOLUTE SMOOTH MOVING CARET */}
           {status !== "completed" && isFocused && caretType !== "hidden" && (
             <span
               className={`absolute pointer-events-none rounded-[1px] ${
-                disableCaretTransition ? "transition-none" : "transition-all duration-[110ms] ease-out"
+                disableCaretTransition ? "transition-none" : "transition-all duration-[130ms] cubic-bezier(0.19, 1, 0.22, 1)"
               } ${
                 isTyping ? "caret-active" : "caret-blink"
               } ${
                 caretType === "block"
-                  ? "bg-primary/15 rounded-[3px] -z-10"
-                  : caretType === "underline"
-                  ? "bg-primary"
-                  : "bg-primary"
+                  ? "bg-primary/20 rounded-[4px] -z-10"
+                  : "bg-primary shadow-[0_0_12px_rgba(var(--primary-rgb),0.4)]"
               }`}
               style={caretStyle}
             />
           )}
 
           <div 
-            className="font-mono text-muted-soft flex flex-wrap tracking-wide"
+            className="font-mono text-muted-soft flex flex-wrap tracking-wide px-2"
             style={{
-              fontSize: "clamp(34px, 2.8vw, 44px)",
-              lineHeight: "1.65",
+              fontSize: "clamp(32px, 2.6vw, 42px)",
+              lineHeight: "1.6",
             }}
           >
             {words.map((word, wordIndex) => {
               const wordChars = word.split("");
               const isLastWord = wordIndex === words.length - 1;
-              const isTypedWord = wordIndex < activeWordIndex;
-              const isActiveWord = wordIndex === activeWordIndex;
+              const distance = wordIndex - activeWordIndex;
+              const isActiveWord = distance === 0;
 
               return (
                 <span 
                   key={wordIndex} 
                   ref={el => { wordRefs.current[wordIndex] = el; }}
-                  className="inline-flex relative"
-                  style={{ marginRight: "0.26em" }}
+                  className={`inline-flex relative transition-all duration-[450ms] cubic-bezier(0.16, 1, 0.3, 1) rounded-md ${isActiveWord ? "scale-[1.02] z-10 bg-primary/5 shadow-[0_0_20px_rgba(var(--primary-rgb),0.05)]" : "scale-100 opacity-70"}`}
+                  style={{ 
+                    marginRight: "0.28em",
+                    padding: "0 0.15em",
+                    filter: isActiveWord ? "none" : `blur(${Math.min(Math.abs(distance) * 0.25, 1)}px) grayscale(${Math.min(Math.abs(distance) * 15, 60)}%)`
+                  }}
                 >
                   {wordChars.map((char, charIndex) => {
                     const absoluteIndex = charCounter++;
@@ -334,35 +341,45 @@ export default function TypingTestArea({
                     let charClass = "";
 
                     if (status === "idle") {
-                      // Softer neutral state before typing starts
-                      charClass = "text-muted-soft/50 font-medium transition-colors duration-300 ease-in-out";
-                    } else if (absoluteIndex < currentInputLength) {
+                      // Upcoming
+                      charClass = "text-muted-soft/50 font-medium";
+                    } else if (distance < 0) {
+                      // Completed
                       const typedChar = typedInput[absoluteIndex];
                       if (typedChar === char) {
-                        // Correctly typed letters: strong contrasting foreground
-                        charClass = "text-foreground font-medium transition-colors duration-150 ease-out";
+                        charClass = "text-muted font-medium opacity-90";
                       } else {
-                        // Mistyped letters: soft error color with bottom border
-                        charClass = "text-error border-b-[2px] border-error/40 font-medium transition-colors duration-100 ease-out";
+                        charClass = "text-error/80 border-b border-error/40 font-medium";
+                      }
+                    } else if (distance === 0) {
+                      // Active
+                      if (absoluteIndex < currentInputLength) {
+                        const typedChar = typedInput[absoluteIndex];
+                        if (typedChar === char) {
+                          charClass = "text-foreground font-bold";
+                        } else {
+                          // Incorrect character: make it distinct
+                          charClass = "text-error border-b-[2.5px] border-error/60 font-black bg-error/10 rounded-sm";
+                        }
+                      } else {
+                        charClass = isCurrent
+                          ? "text-foreground font-bold"
+                          : "text-muted-soft/80 font-medium";
                       }
                     } else {
-                      // Character not yet typed
-                      if (isActiveWord) {
-                        charClass = isCurrent
-                          ? "text-foreground font-semibold transition-all duration-150 ease-out"
-                          : "text-muted-soft/75 font-medium transition-colors duration-200 ease-out";
-                      } else {
-                        // Upcoming words: very soft background color
-                        charClass = "text-muted-soft/45 font-medium transition-colors duration-250 ease-in-out";
-                      }
+                      // Future words
+                      charClass = "text-muted-soft/40 font-medium";
                     }
+
+                    const isJustTyped = absoluteIndex === currentInputLength - 1 && status === "typing";
+                    const popClass = isJustTyped ? "type-pop" : "";
 
                     return (
                       <span 
                         key={charIndex} 
                         className={`relative inline-block ${isCurrent ? "active-char" : ""}`}
                       >
-                        <span className={charClass}>{char}</span>
+                        <span className={`${charClass} ${popClass} char-transition`}>{char}</span>
                       </span>
                     );
                   })}
@@ -374,25 +391,25 @@ export default function TypingTestArea({
                     let spaceClass = "";
 
                     if (status === "idle") {
-                      spaceClass = "text-muted-soft/40 transition-colors duration-300";
+                      spaceClass = "text-muted-soft/30 transition-colors duration-300";
                     } else if (spaceAbsoluteIndex < currentInputLength) {
                       const typedChar = typedInput[spaceAbsoluteIndex];
                       if (typedChar === " ") {
-                        spaceClass = "text-foreground/85 transition-colors duration-200";
+                        spaceClass = "text-muted/60 transition-colors duration-200";
                       } else {
-                        spaceClass = "bg-error/20 text-error transition-colors duration-150";
+                        spaceClass = "bg-error/15 text-error transition-colors duration-150 rounded-[2px]";
                       }
                     } else {
                       spaceClass = isCurrent 
-                        ? "text-foreground/80 transition-colors duration-150"
-                        : "text-muted-soft/40 transition-colors duration-300";
+                        ? "text-foreground/70 transition-colors duration-150"
+                        : "text-muted-soft/30 transition-colors duration-300";
                     }
 
                     return (
                       <span 
                         className={`relative inline-block ${isCurrent ? "active-char" : ""}`}
                       >
-                        <span className={`${spaceClass} px-[0.08em]`}>&nbsp;</span>
+                        <span className={`${spaceClass} px-[0.08em] char-transition`}>&nbsp;</span>
                       </span>
                     );
                   })()}

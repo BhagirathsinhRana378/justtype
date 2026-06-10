@@ -130,86 +130,91 @@ export default function TypePage() {
       {status !== "completed" ? (
         <>
           {/* 1. COMPACT CONTROLS TOOLBAR (Filters stay exactly at the top) */}
-          <div className="w-full max-w-[min(1080px,86vw)] flex items-center justify-between bg-card/40 border border-border-hairline/60 rounded-[14px] px-6 h-[50px] font-mono text-sm text-muted shadow-xs gap-6 overflow-x-auto whitespace-nowrap scrollbar-none animate-fadeIn transition-all-smooth shrink-0">
+          <div className="w-full max-w-[min(1400px,95vw)] flex items-center justify-between bg-card/60 border-2 border-primary/20 rounded-[18px] px-8 h-[64px] font-mono text-sm text-muted shadow-lg gap-6 overflow-x-auto whitespace-nowrap scrollbar-none animate-fadeIn transition-all-smooth shrink-0">
             
-            {/* Mode Selector */}
-            <div className="flex items-center space-x-2 shrink-0">
+            {/* Left: Mode Selector */}
+            <div className="flex items-center bg-background/40 p-1 rounded-xl border border-border-hairline/50 shrink-0">
               <button
                 onClick={() => setMode("time")}
-                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer ${
-                  mode === "time" ? "text-primary bg-primary/10 font-semibold border border-primary/15 shadow-[0_2px_8px_color-mix(in_srgb,var(--primary)_15%,transparent)]" : "hover:text-foreground hover:bg-card/70"
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all duration-200 cursor-pointer ${
+                  mode === "time" ? "text-primary bg-primary/15 shadow-sm" : "hover:text-foreground text-muted-soft"
                 }`}
               >
-                <Clock className="w-3.5 h-3.5" />
-                <span>Time</span>
+                <Clock className="w-4 h-4" />
+                <span>time</span>
               </button>
               <button
                 onClick={() => setMode("words")}
-                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer ${
-                  mode === "words" ? "text-primary bg-primary/10 font-semibold border border-primary/15 shadow-[0_2px_8px_color-mix(in_srgb,var(--primary)_15%,transparent)]" : "hover:text-foreground hover:bg-card/70"
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all duration-200 cursor-pointer ${
+                  mode === "words" ? "text-primary bg-primary/15 shadow-sm" : "hover:text-foreground text-muted-soft"
                 }`}
               >
-                <FileText className="w-3.5 h-3.5" />
-                <span>Words</span>
+                <FileText className="w-4 h-4" />
+                <span>words</span>
               </button>
               <button
                 onClick={() => setMode("quote")}
-                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer ${
-                  mode === "quote" ? "text-primary bg-primary/10 font-semibold border border-primary/15 shadow-[0_2px_8px_color-mix(in_srgb,var(--primary)_15%,transparent)]" : "hover:text-foreground hover:bg-card/70"
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all duration-200 cursor-pointer ${
+                  mode === "quote" ? "text-primary bg-primary/15 shadow-sm" : "hover:text-foreground text-muted-soft"
                 }`}
               >
-                <Quote className="w-3.5 h-3.5" />
-                <span>Quote</span>
+                <Quote className="w-4 h-4" />
+                <span>quote</span>
               </button>
               <button
                 onClick={() => setMode("custom")}
-                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer ${
-                  mode === "custom" ? "text-primary bg-primary/10 font-semibold border border-primary/15 shadow-[0_2px_8px_color-mix(in_srgb,var(--primary)_15%,transparent)]" : "hover:text-foreground hover:bg-card/70"
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all duration-200 cursor-pointer ${
+                  mode === "custom" ? "text-primary bg-primary/15 shadow-sm" : "hover:text-foreground text-muted-soft"
                 }`}
-                title="AI custom word list targeting weak keys"
               >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>AI Coach</span>
+                <Sparkles className="w-4 h-4" />
+                <span>zen</span>
               </button>
             </div>
 
-            {/* Limit / Duration Options */}
-            {mode === "time" && (
-              <div className="flex items-center space-x-2 border-l border-border-hairline/60 pl-4 shrink-0">
-                <span className="text-[11px] text-muted-soft uppercase tracking-wider mr-1">Secs:</span>
-                {[15, 30, 60, 120].map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setLimit(t)}
-                    className={`px-2 py-0.5 rounded text-sm transition-all duration-200 cursor-pointer ${
-                      limit === t ? "text-primary font-semibold underline underline-offset-4 decoration-2" : "hover:text-foreground"
-                    }`}
-                  >
-                    {t}s
-                  </button>
-                ))}
-              </div>
-            )}
+            {/* Center: Limit / Duration Options (Centered in the bar) */}
+            <div className="flex-1 flex justify-center border-x border-border-hairline/60 px-6">
+              {mode === "time" && (
+                <div className="flex items-center gap-1">
+                  {[15, 30, 60, 120].map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => setLimit(t)}
+                      className={`min-w-[50px] px-4 py-1.5 rounded-lg text-base transition-all duration-200 cursor-pointer font-bold ${
+                        limit === t 
+                          ? "text-primary bg-primary/10 ring-1 ring-primary/30" 
+                          : "hover:text-foreground text-muted-soft hover:bg-card/80"
+                      }`}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                  <span className="ml-2 text-xs font-bold text-muted-soft/60 uppercase tracking-tighter">seconds</span>
+                </div>
+              )}
 
-            {mode === "words" && (
-              <div className="flex items-center space-x-2 border-l border-border-hairline/60 pl-4 shrink-0">
-                <span className="text-[11px] text-muted-soft uppercase tracking-wider mr-1">Count:</span>
-                {[10, 25, 50, 100].map((w) => (
-                  <button
-                    key={w}
-                    onClick={() => setLimit(w)}
-                    className={`px-2 py-0.5 rounded text-sm transition-all duration-200 cursor-pointer ${
-                      limit === w ? "text-primary font-semibold underline underline-offset-4 decoration-2" : "hover:text-foreground"
-                    }`}
-                  >
-                    {w}
-                  </button>
-                ))}
-              </div>
-            )}
+              {mode === "words" && (
+                <div className="flex items-center gap-1">
+                  {[10, 25, 50, 100].map((w) => (
+                    <button
+                      key={w}
+                      onClick={() => setLimit(w)}
+                      className={`min-w-[50px] px-4 py-1.5 rounded-lg text-base transition-all duration-200 cursor-pointer font-bold ${
+                        limit === w 
+                          ? "text-primary bg-primary/10 ring-1 ring-primary/30" 
+                          : "hover:text-foreground text-muted-soft hover:bg-card/80"
+                      }`}
+                    >
+                      {w}
+                    </button>
+                  ))}
+                  <span className="ml-2 text-xs font-bold text-muted-soft/60 uppercase tracking-tighter">words</span>
+                </div>
+              )}
+            </div>
 
-            {/* Layout, Sound & Caret Dropdowns */}
-            <div className="flex items-center space-x-4 border-l border-border-hairline/60 pl-4 shrink-0">
+            {/* Right: Layout, Sound & Caret Dropdowns */}
+            <div className="flex items-center space-x-4 pl-4 shrink-0">
               {/* Layout */}
               <div className="flex items-center space-x-1.5">
                 <Keyboard className="w-4 h-4 text-muted-soft" />
@@ -283,7 +288,7 @@ export default function TypePage() {
             </div>
 
             {/* Word board wrapper */}
-            <div className="w-full max-w-[min(1080px,86vw)]">
+            <div className="w-full max-w-[min(1500px,98vw)]">
               <TypingTestArea
                 words={words}
                 typedInput={typedInput}
@@ -298,7 +303,7 @@ export default function TypePage() {
           </div>
 
           {/* 3. FIXED BOTTOM SECTION: Virtual Keyboard near the bottom of viewport */}
-          <div className="w-full max-w-[620px] pb-2 animate-fadeIn shrink-0">
+          <div className="w-full max-w-[740px] pb-2 animate-fadeIn shrink-0">
             <VirtualKeyboard 
               layout={layout} 
               pressedKeys={pressedKeys} 
