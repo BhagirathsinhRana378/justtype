@@ -26,7 +26,21 @@ const cormorantGaramond = Cormorant_Garamond({
 export const metadata: Metadata = {
   title: "JustType | AI-Powered Premium Typing Test",
   description: "An elegant, AI-driven typing test platform that detects weak keys, predicts typing growth, and designs custom coach lessons to boost your word-per-minute speed.",
-  keywords: ["typing test", "wpm tracker", "typing accuracy", "keyboard  training", "AI coach"],
+  keywords: ["typing test", "wpm tracker", "typing accuracy", "keyboard training", "AI coach"],
+  icons: {
+    icon: [
+      { url: "/favicon-96x96.png", sizes: "96x96", type: "image/png" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
+  manifest: "/site.webmanifest",
+  appleWebApp: {
+    title: "JustType",
+  },
 };
 
 export default function Root({
@@ -38,6 +52,7 @@ export default function Root({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} ${cormorantGaramond.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <head />
       <body className="min-h-full flex flex-col bg-background text-foreground font-sans selection:bg-primary selection:text-white transition-colors duration-300">

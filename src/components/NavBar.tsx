@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Keyboard, BarChart3, Sparkles, Trophy, User, Settings, Menu, X } from "lucide-react";
+import ThemeSwitcher from "./ThemeSwitcher";
 
 export default function NavBar() {
   const pathname = usePathname();
@@ -30,29 +31,34 @@ export default function NavBar() {
           </div>
           
           {/* Desktop Nav */}
-          <div className="hidden md:flex space-x-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.href;
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all-smooth ${
-                    isActive
-                      ? "text-primary bg-card border-b-2 border-primary"
-                      : "text-muted hover:text-foreground hover:bg-card"
-                  }`}
-                >
-                  <Icon className="w-4 h-4 mr-2" />
-                  <span>{item.name}</span>
-                </Link>
-              );
-            })}
+          <div className="hidden md:flex items-center space-x-4">
+            <div className="flex space-x-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all-smooth ${
+                      isActive
+                        ? "text-primary bg-card border-b-2 border-primary"
+                        : "text-muted hover:text-foreground hover:bg-card"
+                    }`}
+                  >
+                    <Icon className="w-4 h-4 mr-2" />
+                    <span>{item.name}</span>
+                  </Link>
+                );
+              })}
+            </div>
+            <div className="h-6 w-px bg-border-hairline" />
+            <ThemeSwitcher />
           </div>
 
-          {/* Mobile menu button */}
-          <div className="flex md:hidden">
+          {/* Mobile Right Cluster */}
+          <div className="flex items-center space-x-4 md:hidden">
+            <ThemeSwitcher />
             <button
               onClick={() => setIsOpen(!isOpen)}
               type="button"

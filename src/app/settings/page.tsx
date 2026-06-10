@@ -7,10 +7,8 @@ import { KeyboardLayoutType } from "@/hooks/useTypingTest";
 const THEMES = [
   { id: "cream", name: "Claude Cream", desc: "Warm canvas editorial style", bg: "bg-[#faf9f5]", text: "text-[#141413]", primary: "bg-[#cc785c]" },
   { id: "charcoal", name: "Charcoal Dark", desc: "Monochrome carbon style", bg: "bg-[#121110]", text: "text-[#faf9f5]", primary: "bg-[#cc785c]" },
-  { id: "cyberpunk", name: "Cyberpunk Neon", desc: "High contrast hacker mode", bg: "bg-[#0b0712]", text: "text-[#00f0ff]", primary: "bg-[#ff007f]" },
-  { id: "matrix", name: "Matrix Green", desc: "Classic digital rain terminal", bg: "bg-[#000000]", text: "text-[#00ff00]", primary: "bg-[#00ff00]" },
-  { id: "sakura", name: "Sakura Blush", desc: "Soft pastel cherry bloom", bg: "bg-[#fdf5f6]", text: "text-[#5c3539]", primary: "bg-[#d67b84]" },
-  { id: "deepsea", name: "Deep Sea Trench", desc: "Calming ocean depth tones", bg: "bg-[#0b132b]", text: "text-[#e0e1dd]", primary: "bg-[#5bc0be]" }
+  { id: "midnight", name: "Midnight Navy", desc: "Deep saturated night tones", bg: "bg-[#020617]", text: "text-[#f1f5f9]", primary: "bg-[#60a5fa]" },
+  { id: "forest", name: "Forest Green", desc: "Refined dark evergreen", bg: "bg-[#052e16]", text: "text-[#f0fdf4]", primary: "bg-[#4ade80]" }
 ];
 
 export default function SettingsPage() {
@@ -160,10 +158,10 @@ export default function SettingsPage() {
                 </div>
                 <div className="flex gap-1.5 bg-background p-1 border border-border-hairline rounded">
                   {[
-                    { id: "click", label: "Click" },
-                    { id: "mechanical", label: "Clack" },
-                    { id: "bubble", label: "Bubble" },
-                    { id: "silent", label: "Mute" }
+                    { id: "natural", label: "Natural" },
+                    { id: "signature", label: "Signature" },
+                    { id: "typeist", label: "Typeist" },
+                    { id: "silent", label: "Silent" }
                   ].map((s) => (
                     <button
                       key={s.id}

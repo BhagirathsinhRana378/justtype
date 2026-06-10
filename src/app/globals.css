@@ -57,7 +57,7 @@
   --font-serif: "Cormorant Garamond", serif;
 }
 
-/* Charcoal Theme */
+/* Charcoal Theme (Dark) */
 :root[data-theme="charcoal"] {
   --background: #121110;
   --foreground: #faf9f5;
@@ -77,84 +77,87 @@
   --error: #c64545;
 }
 
-/* Cyberpunk Theme */
-:root[data-theme="cyberpunk"] {
-  --background: #0b0712;
-  --foreground: #00f0ff;
-  --card: #190f2b;
-  --card-elevated: #291244;
-  --primary: #ff007f;
-  --primary-hover: #d6006c;
-  --primary-disabled: #2d1b38;
-  --ink: #00f0ff;
-  --muted: #ab57ce;
-  --muted-soft: #623077;
-  --border-hairline: #ff007f55;
-  --accent-teal: #00f0ff;
-  --accent-amber: #ffff00;
-  --success: #39ff14;
-  --warning: #ffff00;
-  --error: #ff007f;
+/* Midnight Theme (Deep Navy) */
+:root[data-theme="midnight"] {
+  --background: #020617;
+  --foreground: #f1f5f9;
+  --card: #0f172a;
+  --card-elevated: #1e293b;
+  --primary: #60a5fa;
+  --primary-rgb: 96, 165, 250;
+  --primary-hover: #3b82f6;
+  --primary-disabled: #0f172a;
+  --ink: #f1f5f9;
+  --muted: #94a3b8;
+  --muted-soft: #64748b;
+  --border-hairline: #1e293b;
+  --accent-teal: #2dd4bf;
+  --accent-amber: #fbbf24;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --error: #f43f5e;
 }
 
-/* Matrix Theme */
-:root[data-theme="matrix"] {
-  --background: #000000;
-  --foreground: #00ff00;
-  --card: #080808;
-  --card-elevated: #121212;
-  --primary: #00ff00;
-  --primary-hover: #00dd00;
-  --primary-disabled: #003300;
-  --ink: #00ff00;
-  --muted: #00aa00;
-  --muted-soft: #005500;
-  --border-hairline: #00ff0033;
-  --accent-teal: #5db8a6;
-  --accent-amber: #e8a55a;
-  --success: #00ff00;
-  --warning: #d4a017;
-  --error: #ff3333;
+:root[data-theme="midnight"] body {
+  position: relative;
+  overflow-x: hidden;
+  background-image: 
+    radial-gradient(1px 1px at 20px 30px, #ffffff22, rgba(0,0,0,0)),
+    radial-gradient(1px 1px at 40px 70px, #ffffff33, rgba(0,0,0,0)),
+    radial-gradient(1px 1px at 50px 160px, #ffffff22, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 90px 40px, #ffffff11, rgba(0,0,0,0)),
+    radial-gradient(1px 1px at 130px 80px, #ffffff22, rgba(0,0,0,0)),
+    radial-gradient(1px 1px at 160px 120px, #ffffff33, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 200px 30px, #ffffff11, rgba(0,0,0,0));
+  background-repeat: repeat;
+  background-size: 250px 250px;
 }
 
-/* Sakura Theme */
-:root[data-theme="sakura"] {
-  --background: #fdf5f6;
-  --foreground: #5c3539;
-  --card: #f8e5e7;
-  --card-elevated: #f3d4d7;
-  --primary: #d67b84;
-  --primary-hover: #b8626b;
-  --primary-disabled: #ebd6d8;
-  --ink: #5c3539;
-  --muted: #8d5c61;
-  --muted-soft: #ab7f84;
-  --border-hairline: #ebd6d8;
-  --accent-teal: #6fb0a5;
-  --accent-amber: #e09e7c;
-  --success: #67aa79;
-  --warning: #cca262;
-  --error: #bf5656;
+:root[data-theme="midnight"] body::before {
+  content: "";
+  position: fixed;
+  top: 50px;
+  right: 60px;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  box-shadow: 15px 15px 0 0 #f1f5f908;
+  pointer-events: none;
+  z-index: -1;
+  filter: blur(1px);
 }
 
-/* Deepsea Theme */
-:root[data-theme="deepsea"] {
-  --background: #0b132b;
-  --foreground: #e0e1dd;
-  --card: #1c2541;
-  --card-elevated: #3a506b;
-  --primary: #5bc0be;
-  --primary-hover: #45b0ae;
-  --primary-disabled: #1c2541;
-  --ink: #e0e1dd;
-  --muted: #8d99ae;
-  --muted-soft: #5d677a;
-  --border-hairline: #1c2541;
-  --accent-teal: #00b4d8;
-  --accent-amber: #fca311;
-  --success: #2ec4b6;
-  --warning: #fca311;
-  --error: #e63946;
+:root[data-theme="midnight"] body::after {
+  content: "";
+  position: fixed;
+  top: 100px;
+  left: 100px;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 80% 20%, #60a5fa05 0%, transparent 40%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Forest Theme (Dark Evergreen) */
+:root[data-theme="forest"] {
+  --background: #052e16;
+  --foreground: #f0fdf4;
+  --card: #064e3b;
+  --card-elevated: #065f46;
+  --primary: #4ade80;
+  --primary-rgb: 74, 222, 128;
+  --primary-hover: #22c55e;
+  --primary-disabled: #064e3b;
+  --ink: #f0fdf4;
+  --muted: #a7f3d0;
+  --muted-soft: #6ee7b7;
+  --border-hairline: #065f46;
+  --accent-teal: #34d399;
+  --accent-amber: #f59e0b;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --error: #ef4444;
 }
 
 /* Apply chosen font families based on setting classes */
@@ -168,11 +171,42 @@
   font-family: var(--font-geist-mono);
 }
 
+/* Landing Page Theme Restrictions (Only Black & White) */
+:root.is-landing-page[data-theme="midnight"],
+:root.is-landing-page[data-theme="forest"] {
+  --background: #121110;
+  --foreground: #faf9f5;
+  --card: #1a1917;
+  --card-elevated: #252320;
+  --primary: #cc785c;
+  --primary-hover: #a9583e;
+  --primary-disabled: #3d3b37;
+  --ink: #faf9f5;
+  --muted: #8e8b82;
+  --muted-soft: #6c6a64;
+  --border-hairline: #2a2926;
+  --accent-teal: #5db8a6;
+  --accent-amber: #e8a55a;
+  --success: #5db872;
+  --warning: #d4a017;
+  --error: #c64545;
+}
+
+/* Disable Midnight effects on Landing Page */
+:root.is-landing-page[data-theme="midnight"] body {
+  background-image: none;
+}
+:root.is-landing-page[data-theme="midnight"] body::before,
+:root.is-landing-page[data-theme="midnight"] body::after {
+  display: none;
+}
+
 body {
   background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Custom typing animations and styling */
@@ -184,6 +218,42 @@ body {
 @keyframes smooth-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  50% { transform: translateY(-10px) rotate(1deg); }
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.15; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(1.05); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-float-slow {
+  animation: float-slow 8s ease-in-out infinite;
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 4s ease-in-out infinite;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.6s ease-out forwards;
 }
 
 .caret-blink {
@@ -253,5 +323,3 @@ body {
 .char-reveal {
   animation: char-reveal 150ms ease-out forwards;
 }
-
-
