@@ -1,9 +1,11 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useTypingTest, KeyboardLayoutType, CaretType } from "@/hooks/useTypingTest";
 import TypingTestArea from "@/components/TypingTestArea";
+import VirtualKeyboard from "@/components/VirtualKeyboard";
 import { Clock, FileText, Quote, Sparkles, Volume2, MousePointerClick, CheckCircle, RefreshCw, BarChart3, Keyboard } from "lucide-react";
-import { calculateFocusScore } from "@/utils/aiEngine";
+import { calculateFocusScore, getSavedSessions } from "@/utils/aiEngine";
 import Link from "next/link";
 
 export default function TypePage() {
@@ -31,6 +33,9 @@ export default function TypePage() {
     registerKeystroke
   } = useTypingTest();
 
+  const [pressedKeys, setPressedKeys] = useState<string[]>([]);
+  const [heatmapData, setHeatmapData] = useState<Record<string, { errorRate: number; avgLatency: number; score: number }>>({});
+
   // Compute focus score at the end of the test
   const finalFocusScore = status === "completed" 
     ? calculateFocusScore({
@@ -44,14 +49,88 @@ export default function TypePage() {
       })
     : 100;
 
-  return (
-    <div className="w-full flex-1 min-h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)] overflow-hidden flex flex-col justify-start items-center bg-background relative select-none px-4 sm:px-6 pt-[36px]">
+  // Keyboard listeners for pressed keys
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Don't register virtual pressed keys if test is complete
+      if (status === "completed") return;
+
+      const key = e.key.toLowerCase();
+      setPressedKeys((prev) => {
+        if (prev.includes(key)) return prev;
+        return [...prev, key];
+      });
+    };
+
+    const handleGlobalKeyUp = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      setPressedKeys((prev) => prev.filter((k) => k !== key));
+    };
+
+    window.addEventListener("keydown", handleGlobalKeyDown);
+    window.addEventListener("keyup", handleGlobalKeyUp);
+    return () => {
+      window.removeEventListener("keydown", handleGlobalKeyDown);
+      window.removeEventListener("keyup", handleGlobalKeyUp);
+    };
+  }, [status]);
+
+  // Load telemetry stats for keyboard heatmap overlay
+  useEffect(() => {
+    try {
+      const sessions = getSavedSessions();
+      interface HeatmapAccumulator {
+        total: number;
+        errors: number;
+        latencies: number[];
+      }
+      const acc: Record<string, HeatmapAccumulator> = {};
       
-      {/* 1. COMPACT CONTROLS TOOLBAR (Visible when not completed) */}
+      sessions.forEach(session => {
+        if (!session.telemetry) return;
+        session.telemetry.forEach(t => {
+          if (t.key.length !== 1) return;
+          const k = t.key.toLowerCase();
+          if (!acc[k]) {
+            acc[k] = { total: 0, errors: 0, latencies: [] };
+          }
+          const item = acc[k];
+          item.total += 1;
+          if (!t.isCorrect) {
+            item.errors += 1;
+          } else {
+            item.latencies.push(t.latency);
+          }
+        });
+      });
+
+      const data: Record<string, { errorRate: number; avgLatency: number; score: number }> = {};
+      Object.keys(acc).forEach(k => {
+        const item = acc[k];
+        const errorRate = item.total > 0 ? item.errors / item.total : 0;
+        const sumLatency = item.latencies.reduce((a: number, b: number) => a + b, 0);
+        const avgLatency = item.latencies.length > 0 ? sumLatency / item.latencies.length : 0;
+        
+        const errorPoints = errorRate * 60;
+        const latencyRef = Math.max(0, avgLatency - 120);
+        const latencyPoints = Math.min(40, (latencyRef / 280) * 40);
+        const score = Math.round(errorPoints + latencyPoints);
+        
+        data[k] = { errorRate, avgLatency, score };
+      });
+      setHeatmapData(data);
+    } catch (e) {
+      console.error("Failed to compile keyboard heatmap stats", e);
+    }
+  }, [status]);
+
+  return (
+    <div className="w-full flex-1 min-h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)] overflow-hidden flex flex-col justify-between items-center bg-background relative select-none px-4 sm:px-6 py-8">
+      
       {status !== "completed" ? (
-        <div className="w-full flex flex-col items-center mt-2">
-          {/* Filters Bar */}
-          <div className="w-full max-w-[min(1080px,86vw)] flex items-center justify-between bg-card/40 border border-border-hairline/60 rounded-[14px] px-6 h-[50px] font-mono text-sm text-muted shadow-xs gap-6 overflow-x-auto whitespace-nowrap scrollbar-none animate-fadeIn mb-[8px] transition-all-smooth">
+        <>
+          {/* 1. COMPACT CONTROLS TOOLBAR (Filters stay exactly at the top) */}
+          <div className="w-full max-w-[min(1080px,86vw)] flex items-center justify-between bg-card/40 border border-border-hairline/60 rounded-[14px] px-6 h-[50px] font-mono text-sm text-muted shadow-xs gap-6 overflow-x-auto whitespace-nowrap scrollbar-none animate-fadeIn transition-all-smooth shrink-0">
             
             {/* Mode Selector */}
             <div className="flex items-center space-x-2 shrink-0">
@@ -178,11 +257,11 @@ export default function TypePage() {
 
           </div>
 
-          {/* 2. MIDDLE TYPING ZONE */}
-          <div className="w-full flex flex-col items-center">
+          {/* 2. CENTERED EXPERIENCE BLOCK (Stats HUD & Word board exactly in center of remaining space) */}
+          <div className="w-full flex-1 flex flex-col justify-center items-center py-4">
             
             {/* Live stats HUD - Minimal design */}
-            <div className="flex items-center gap-6 font-mono text-xs text-muted-soft h-6 select-none transition-opacity duration-200 mb-[8px]">
+            <div className="flex items-center gap-6 font-mono text-xs text-muted-soft h-6 select-none transition-opacity duration-200 mb-[24px] shrink-0">
               <div className="flex items-center gap-1">
                 <span>time:</span>
                 <span className="text-foreground font-semibold">
@@ -217,85 +296,94 @@ export default function TypePage() {
             </div>
 
           </div>
-        </div>
+
+          {/* 3. FIXED BOTTOM SECTION: Virtual Keyboard near the bottom of viewport */}
+          <div className="w-full max-w-[620px] pb-2 animate-fadeIn shrink-0">
+            <VirtualKeyboard 
+              layout={layout} 
+              pressedKeys={pressedKeys} 
+              heatmapMode="latency"
+              heatmapData={heatmapData}
+            />
+          </div>
+        </>
       ) : (
-        /* Finished Test Scorecard */
-        <div className="w-full max-w-[75ch] bg-card border border-border-hairline rounded-lg p-6 animate-fadeIn flex flex-col gap-6 shadow-sm">
-          <div className="flex items-center justify-between border-b border-border-hairline pb-3">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-success" />
-              <h2 className="text-lg font-serif text-foreground">Session Complete</h2>
-            </div>
-            <button
-              onClick={restartTest}
-              className="flex items-center gap-1.5 px-3 py-1 bg-primary hover:bg-primary-hover text-white text-xs font-mono rounded shadow-xs transition-colors cursor-pointer"
-            >
-              <RefreshCw className="w-3 h-3" />
-              <span>Reset workbench</span>
-            </button>
-          </div>
-
-          {/* Scorecard Stats Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-            
-            <div className="bg-background border border-border-hairline p-3 rounded">
-              <p className="text-[10px] font-mono text-muted uppercase tracking-wider mb-0.5">Speed</p>
-              <p className="text-2xl font-mono font-bold text-primary">{wpm}</p>
-              <p className="text-[9px] font-mono text-muted-soft leading-none">WPM</p>
-            </div>
-
-            <div className="bg-background border border-border-hairline p-3 rounded">
-              <p className="text-[10px] font-mono text-muted uppercase tracking-wider mb-0.5">Accuracy</p>
-              <p className="text-2xl font-mono font-bold text-success">{accuracy}%</p>
-              <p className="text-[9px] font-mono text-muted-soft leading-none">correct keys</p>
-            </div>
-
-            <div className="bg-background border border-border-hairline p-3 rounded">
-              <p className="text-[10px] font-mono text-muted uppercase tracking-wider mb-0.5">Focus</p>
-              <p className="text-2xl font-mono font-bold text-accent-teal">{finalFocusScore}%</p>
-              <p className="text-[9px] font-mono text-muted-soft leading-none">consistency</p>
-            </div>
-
-            <div className="bg-background border border-border-hairline p-3 rounded">
-              <p className="text-[10px] font-mono text-muted uppercase tracking-wider mb-0.5">Mistakes</p>
-              <p className="text-2xl font-mono font-bold text-error">{rawMistakes}</p>
-              <p className="text-[9px] font-mono text-muted-soft leading-none">incorrect keys</p>
-            </div>
-
-          </div>
-
-          {/* Redirection Prompt */}
-          <div className="flex flex-col sm:flex-row items-center justify-between bg-background border border-border-hairline rounded p-3 gap-3">
-            <div className="flex items-center gap-3 text-left">
-              <div className="p-2 bg-primary/10 text-primary rounded shrink-0">
-                <BarChart3 className="w-4 h-4" />
+        /* Finished Test Scorecard Centered Vertically */
+        <div className="w-full flex-1 flex items-center justify-center">
+          <div className="w-full max-w-[75ch] bg-card border border-border-hairline rounded-lg p-6 animate-fadeIn flex flex-col gap-6 shadow-sm">
+            <div className="flex items-center justify-between border-b border-border-hairline pb-3">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-success" />
+                <h2 className="text-lg font-serif text-foreground">Session Complete</h2>
               </div>
-              <div>
-                <h3 className="text-xs font-semibold text-foreground">Detailed Latency Heatmap</h3>
-                <p className="text-[11px] text-muted leading-tight">Inspect standard deviations and identify exact letters that slow your transition flow.</p>
+              <button
+                onClick={restartTest}
+                className="flex items-center gap-1.5 px-3 py-1 bg-primary hover:bg-primary-hover text-white text-xs font-mono rounded shadow-xs transition-colors cursor-pointer"
+              >
+                <RefreshCw className="w-3 h-3" />
+                <span>Reset workbench</span>
+              </button>
+            </div>
+
+            {/* Scorecard Stats Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+              
+              <div className="bg-background border border-border-hairline p-3 rounded">
+                <p className="text-[10px] font-mono text-muted uppercase tracking-wider mb-0.5">Speed</p>
+                <p className="text-2xl font-mono font-bold text-primary">{wpm}</p>
+                <p className="text-[9px] font-mono text-muted-soft leading-none">WPM</p>
+              </div>
+
+              <div className="bg-background border border-border-hairline p-3 rounded">
+                <p className="text-[10px] font-mono text-muted uppercase tracking-wider mb-0.5">Accuracy</p>
+                <p className="text-2xl font-mono font-bold text-success">{accuracy}%</p>
+                <p className="text-[9px] font-mono text-muted-soft leading-none">correct keys</p>
+              </div>
+
+              <div className="bg-background border border-border-hairline p-3 rounded">
+                <p className="text-[10px] font-mono text-muted uppercase tracking-wider mb-0.5">Focus</p>
+                <p className="text-2xl font-mono font-bold text-accent-teal">{finalFocusScore}%</p>
+                <p className="text-[9px] font-mono text-muted-soft leading-none">consistency</p>
+              </div>
+
+              <div className="bg-background border border-border-hairline p-3 rounded">
+                <p className="text-[10px] font-mono text-muted uppercase tracking-wider mb-0.5">Mistakes</p>
+                <p className="text-2xl font-mono font-bold text-error">{rawMistakes}</p>
+                <p className="text-[9px] font-mono text-muted-soft leading-none">incorrect keys</p>
+              </div>
+
+            </div>
+
+            {/* Redirection Prompt */}
+            <div className="flex flex-col sm:flex-row items-center justify-between bg-background border border-border-hairline rounded p-3 gap-3">
+              <div className="flex items-center gap-3 text-left">
+                <div className="p-2 bg-primary/10 text-primary rounded shrink-0">
+                  <BarChart3 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-semibold text-foreground">Detailed Latency Heatmap</h3>
+                  <p className="text-[11px] text-muted leading-tight">Inspect standard deviations and identify exact letters that slow your transition flow.</p>
+                </div>
+              </div>
+              <div className="flex gap-2 w-full sm:w-auto shrink-0">
+                <Link
+                  href="/dashboard"
+                  className="flex-1 text-center px-3 py-1.5 border border-border-hairline hover:border-primary/50 text-xs font-mono rounded text-foreground hover:text-primary transition-colors whitespace-nowrap"
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  href="/ai-coach"
+                  className="flex-1 text-center px-3 py-1.5 bg-primary/15 text-primary hover:bg-primary-hover/20 border border-primary/35 text-xs font-mono rounded transition-colors whitespace-nowrap"
+                >
+                  AI Coach
+                </Link>
               </div>
             </div>
-            <div className="flex gap-2 w-full sm:w-auto shrink-0">
-              <Link
-                href="/dashboard"
-                className="flex-1 text-center px-3 py-1.5 border border-border-hairline hover:border-primary/50 text-xs font-mono rounded text-foreground hover:text-primary transition-colors whitespace-nowrap"
-              >
-                Dashboard
-              </Link>
-              <Link
-                href="/ai-coach"
-                className="flex-1 text-center px-3 py-1.5 bg-primary/15 text-primary hover:bg-primary-hover/20 border border-primary/35 text-xs font-mono rounded transition-colors whitespace-nowrap"
-              >
-                AI Coach
-              </Link>
-            </div>
-          </div>
 
+          </div>
         </div>
       )}
-
-      {/* spacer or simple placeholder for keyboard alignment */}
-      <div className="h-2" />
 
     </div>
   );

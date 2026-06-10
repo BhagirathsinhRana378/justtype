@@ -3,8 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { CaretType, KeyboardLayoutType } from "@/hooks/useTypingTest";
-import VirtualKeyboard from "./VirtualKeyboard";
-import { getSavedSessions } from "@/utils/aiEngine";
 
 interface TypingTestAreaProps {
   words: string[];
@@ -21,18 +19,28 @@ export default function TypingTestArea({
   typedInput,
   status,
   caretType,
-  layout,
   registerKeystroke,
   restartTest,
 }: TypingTestAreaProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFocused, setIsFocused] = useState(false);
-  const [pressedKeys, setPressedKeys] = useState<string[]>([]);
   const [translateY, setTranslateY] = useState(0);
-  const [heatmapData, setHeatmapData] = useState<Record<string, { errorRate: number; avgLatency: number; score: number }>>({});
   
   const wordRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const prevTopRef = useRef<number>(0);
+  
+  const [caretStyle, setCaretStyle] = useState<React.CSSProperties>({
+    left: 0,
+    top: 0,
+    width: 0,
+    height: 0,
+    opacity: 0,
+  });
+  
+  const [disableCaretTransition, setDisableCaretTransition] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const focusInput = () => {
     if (inputRef.current) {
@@ -42,69 +50,17 @@ export default function TypingTestArea({
 
   // Reset word refs on words list update
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect */
     wordRefs.current = [];
     setTranslateY(0);
-    /* eslint-enable react-hooks/set-state-in-effect */
+    prevTopRef.current = 0;
   }, [words]);
-
-  // Load telemetry stats for keyboard heatmap overlay
-  useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect */
-    try {
-      const sessions = getSavedSessions();
-      interface HeatmapAccumulator {
-        total: number;
-        errors: number;
-        latencies: number[];
-      }
-      const acc: Record<string, HeatmapAccumulator> = {};
-      
-      sessions.forEach(session => {
-        if (!session.telemetry) return;
-        session.telemetry.forEach(t => {
-          if (t.key.length !== 1) return;
-          const k = t.key.toLowerCase();
-          if (!acc[k]) {
-            acc[k] = { total: 0, errors: 0, latencies: [] };
-          }
-          const item = acc[k];
-          item.total += 1;
-          if (!t.isCorrect) {
-            item.errors += 1;
-          } else {
-            item.latencies.push(t.latency);
-          }
-        });
-      });
-
-      const data: Record<string, { errorRate: number; avgLatency: number; score: number }> = {};
-      Object.keys(acc).forEach(k => {
-        const item = acc[k];
-        const errorRate = item.total > 0 ? item.errors / item.total : 0;
-        const sumLatency = item.latencies.reduce((a: number, b: number) => a + b, 0);
-        const avgLatency = item.latencies.length > 0 ? sumLatency / item.latencies.length : 0;
-        
-        const errorPoints = errorRate * 60;
-        const latencyRef = Math.max(0, avgLatency - 120);
-        const latencyPoints = Math.min(40, (latencyRef / 280) * 40);
-        const score = Math.round(errorPoints + latencyPoints);
-        
-        data[k] = { errorRate, avgLatency, score };
-      });
-      setHeatmapData(data);
-    } catch (e) {
-      console.error("Failed to compile keyboard heatmap stats", e);
-    }
-    /* eslint-enable react-hooks/set-state-in-effect */
-  }, [status]);
 
   // Focus on mount
   useEffect(() => {
     focusInput();
   }, []);
 
-  // Keyboard listeners for focusing, Tab shortcut and pressed keys
+  // Keyboard listeners for focusing, Tab shortcut
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       if (
@@ -123,26 +79,106 @@ export default function TypingTestArea({
         restartTest();
         focusInput();
       }
-
-      const key = e.key.toLowerCase();
-      setPressedKeys((prev) => {
-        if (prev.includes(key)) return prev;
-        return [...prev, key];
-      });
-    };
-
-    const handleGlobalKeyUp = (e: KeyboardEvent) => {
-      const key = e.key.toLowerCase();
-      setPressedKeys((prev) => prev.filter((k) => k !== key));
     };
 
     window.addEventListener("keydown", handleGlobalKeyDown);
-    window.addEventListener("keyup", handleGlobalKeyUp);
     return () => {
       window.removeEventListener("keydown", handleGlobalKeyDown);
-      window.removeEventListener("keyup", handleGlobalKeyUp);
     };
   }, [isFocused, restartTest]);
+
+  // Keep track of active typing state to pause caret blinking
+  useEffect(() => {
+    if (typedInput.length === 0) {
+      setIsTyping(false);
+      return;
+    }
+    
+    setIsTyping(true);
+    
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false);
+    }, 500);
+
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, [typedInput]);
+
+  // Measure and update the caret position relative to the words-board
+  useEffect(() => {
+    if (status === "completed") {
+      setCaretStyle(prev => ({ ...prev, opacity: 0 }));
+      return;
+    }
+    
+    const container = containerRef.current;
+    if (!container) return;
+    
+    const activeEl = container.querySelector(".active-char") as HTMLElement;
+    if (activeEl) {
+      const activeRect = activeEl.getBoundingClientRect();
+      const boardEl = container.querySelector(".words-board") as HTMLElement;
+      if (boardEl) {
+        const boardRect = boardEl.getBoundingClientRect();
+        
+        const left = activeRect.left - boardRect.left;
+        const top = activeRect.top - boardRect.top;
+        const width = activeRect.width;
+        const height = activeRect.height;
+        
+        const prevTop = prevTopRef.current;
+        // If line changed, disable transition to prevent diagonal slide
+        if (prevTop > 0 && Math.abs(top - prevTop) > 10) {
+          setDisableCaretTransition(true);
+          const t = setTimeout(() => {
+            setDisableCaretTransition(false);
+          }, 40);
+          prevTopRef.current = top;
+          setCaretStyle({
+            left,
+            top: caretType === "underline" ? top + height - 3.5 : (caretType === "smooth" ? top + (height - height * 0.82) / 2 : top),
+            width: caretType === "smooth" ? 2.5 : width,
+            height: caretType === "smooth" ? height * 0.82 : (caretType === "underline" ? 3.5 : height),
+            opacity: 1,
+          });
+          return () => clearTimeout(t);
+        }
+        
+        prevTopRef.current = top;
+
+        let caretWidth = width;
+        let caretHeight = height;
+        let caretTop = top;
+        let caretLeft = left;
+
+        if (caretType === "smooth") {
+          caretWidth = 2.5;
+          caretHeight = height * 0.82;
+          caretTop = top + (height - caretHeight) / 2;
+        } else if (caretType === "underline") {
+          caretHeight = 3.5;
+          caretTop = top + height - 3.5;
+        }
+
+        setCaretStyle({
+          left: caretLeft,
+          top: caretTop,
+          width: caretWidth,
+          height: caretHeight,
+          opacity: 1,
+        });
+      }
+    } else {
+      setCaretStyle(prev => ({ ...prev, opacity: 0 }));
+    }
+  }, [typedInput, isFocused, status, caretType, words]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -162,7 +198,6 @@ export default function TypingTestArea({
 
   const currentInputLength = typedInput.length;
 
-  // Active word index derived from space counts in typedInput
   const getActiveWordIndex = () => {
     let spaceCount = 0;
     for (let i = 0; i < currentInputLength; i++) {
@@ -188,7 +223,7 @@ export default function TypingTestArea({
     }
   }, [activeWordIndex]);
 
-  // Recalculate translateY on window resize (which might wrap lines)
+  // Recalculate translateY on window resize
   useEffect(() => {
     const handleResize = () => {
       const activeWordEl = wordRefs.current[activeWordIndex];
@@ -218,7 +253,7 @@ export default function TypingTestArea({
         className="w-full relative cursor-text select-none outline-none overflow-hidden"
         style={{
           width: "min(1080px, 86vw)",
-          height: "calc(4.8 * clamp(30px, 2.4vw, 38px))",
+          height: "calc(4.95 * clamp(34px, 2.8vw, 44px))",
           borderRadius: "0px",
           padding: "0px",
           background: "transparent",
@@ -252,14 +287,32 @@ export default function TypingTestArea({
 
         {/* Translated words board */}
         <div 
-          className="w-full relative transition-transform duration-200 ease-out"
+          className="w-full relative transition-transform duration-200 ease-out words-board"
           style={{ transform: `translateY(${translateY}px)` }}
         >
+          {/* 1. SINGLE ABSOLUTE SMOOTH MOVING CARET */}
+          {status !== "completed" && isFocused && caretType !== "hidden" && (
+            <span
+              className={`absolute pointer-events-none rounded-[1px] ${
+                disableCaretTransition ? "transition-none" : "transition-all duration-[110ms] ease-out"
+              } ${
+                isTyping ? "caret-active" : "caret-blink"
+              } ${
+                caretType === "block"
+                  ? "bg-primary/15 rounded-[3px] -z-10"
+                  : caretType === "underline"
+                  ? "bg-primary"
+                  : "bg-primary"
+              }`}
+              style={caretStyle}
+            />
+          )}
+
           <div 
             className="font-mono text-muted-soft flex flex-wrap tracking-wide"
             style={{
-              fontSize: "clamp(30px, 2.4vw, 38px)",
-              lineHeight: "1.6",
+              fontSize: "clamp(34px, 2.8vw, 44px)",
+              lineHeight: "1.65",
             }}
           >
             {words.map((word, wordIndex) => {
@@ -277,45 +330,39 @@ export default function TypingTestArea({
                 >
                   {wordChars.map((char, charIndex) => {
                     const absoluteIndex = charCounter++;
-                    let charClass = "";
                     const isCurrent = absoluteIndex === currentInputLength;
+                    let charClass = "";
 
                     if (status === "idle") {
-                      charClass = "text-muted-soft/65 transition-all duration-300";
+                      // Softer neutral state before typing starts
+                      charClass = "text-muted-soft/50 font-medium transition-colors duration-300 ease-in-out";
                     } else if (absoluteIndex < currentInputLength) {
                       const typedChar = typedInput[absoluteIndex];
                       if (typedChar === char) {
-                        charClass = isTypedWord 
-                          ? "text-muted-soft/80 font-medium transition-colors duration-200" 
-                          : "text-foreground/90 font-medium transition-colors duration-200";
+                        // Correctly typed letters: strong contrasting foreground
+                        charClass = "text-foreground font-medium transition-colors duration-150 ease-out";
                       } else {
-                        charClass = "text-error border-b border-error/50 transition-colors duration-150";
+                        // Mistyped letters: soft error color with bottom border
+                        charClass = "text-error border-b-[2px] border-error/40 font-medium transition-colors duration-100 ease-out";
                       }
                     } else {
                       // Character not yet typed
                       if (isActiveWord) {
                         charClass = isCurrent
-                          ? "text-foreground font-bold transition-all duration-150"
-                          : "text-muted-soft/90 font-medium transition-colors duration-250";
+                          ? "text-foreground font-semibold transition-all duration-150 ease-out"
+                          : "text-muted-soft/75 font-medium transition-colors duration-200 ease-out";
                       } else {
-                        charClass = "text-muted-soft/60 transition-colors duration-300";
+                        // Upcoming words: very soft background color
+                        charClass = "text-muted-soft/45 font-medium transition-colors duration-250 ease-in-out";
                       }
                     }
 
                     return (
-                      <span key={charIndex} className="relative inline-block">
-                        {isCurrent && isFocused && caretType !== "hidden" && (
-                          <span
-                            className={`absolute ${
-                              caretType === "block"
-                                ? "w-[0.6em] h-[1.2em] bg-primary/80 -z-10 rounded-[2px]"
-                                : caretType === "underline"
-                                ? "w-[0.6em] h-[3px] bg-primary bottom-0"
-                                : "w-[2px] h-[1.25em] bg-primary"
-                            } top-[0.1em] caret-blink transition-all duration-75`}
-                          />
-                        )}
-                        <span className={`${charClass}`}>{char}</span>
+                      <span 
+                        key={charIndex} 
+                        className={`relative inline-block ${isCurrent ? "active-char" : ""}`}
+                      >
+                        <span className={charClass}>{char}</span>
                       </span>
                     );
                   })}
@@ -323,36 +370,29 @@ export default function TypingTestArea({
                   {/* Spaces */}
                   {!isLastWord && (() => {
                     const spaceAbsoluteIndex = charCounter++;
-                    let spaceClass = "text-muted-soft/60 transition-colors duration-300";
                     const isCurrent = spaceAbsoluteIndex === currentInputLength;
+                    let spaceClass = "";
 
                     if (status === "idle") {
-                      spaceClass = "text-muted-soft/65 transition-all duration-300";
+                      spaceClass = "text-muted-soft/40 transition-colors duration-300";
                     } else if (spaceAbsoluteIndex < currentInputLength) {
                       const typedChar = typedInput[spaceAbsoluteIndex];
                       if (typedChar === " ") {
-                        spaceClass = "text-foreground/90 transition-colors duration-200";
+                        spaceClass = "text-foreground/85 transition-colors duration-200";
                       } else {
                         spaceClass = "bg-error/20 text-error transition-colors duration-150";
                       }
-                    } else if (isCurrent && isFocused) {
-                      spaceClass = "text-foreground/80 transition-all duration-150";
+                    } else {
+                      spaceClass = isCurrent 
+                        ? "text-foreground/80 transition-colors duration-150"
+                        : "text-muted-soft/40 transition-colors duration-300";
                     }
 
                     return (
-                      <span className="relative inline-block">
-                        {isCurrent && isFocused && caretType !== "hidden" && (
-                          <span
-                            className={`absolute ${
-                              caretType === "block"
-                                ? "w-[0.4em] h-[1.2em] bg-primary/80 -z-10 rounded-[2px]"
-                                : caretType === "underline"
-                                ? "w-[0.4em] h-[3px] bg-primary bottom-0"
-                                : "w-[2px] h-[1.25em] bg-primary"
-                            } top-[0.1em] caret-blink transition-all duration-75`}
-                          />
-                        )}
-                        <span className={`${spaceClass} px-[0.1em]`}>&nbsp;</span>
+                      <span 
+                        className={`relative inline-block ${isCurrent ? "active-char" : ""}`}
+                      >
+                        <span className={`${spaceClass} px-[0.08em]`}>&nbsp;</span>
                       </span>
                     );
                   })()}
@@ -364,21 +404,9 @@ export default function TypingTestArea({
 
       </div>
 
-      {/* 3. FIXED BOTTOM SECTION: Virtual Keyboard (Heatmap enabled) */}
+      {/* Restart Info row (Spacious margins below typing area) */}
       {status !== "completed" && (
-        <div className="w-full max-w-[620px] mt-4 animate-fadeIn">
-          <VirtualKeyboard 
-            layout={layout} 
-            pressedKeys={pressedKeys} 
-            heatmapMode="latency"
-            heatmapData={heatmapData}
-          />
-        </div>
-      )}
-
-      {/* Restart Info row (Compact footer) */}
-      {status !== "completed" && (
-        <div className="mt-3 flex items-center gap-4 text-xs text-muted-soft select-none font-mono">
+        <div className="mt-8 flex items-center gap-4 text-xs text-muted-soft select-none font-mono">
           <button
             onClick={() => {
               restartTest();

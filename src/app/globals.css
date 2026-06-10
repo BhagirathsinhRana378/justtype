@@ -182,11 +182,16 @@ body {
 
 @keyframes smooth-blink {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.15; }
+  50% { opacity: 0; }
 }
 
 .caret-blink {
-  animation: smooth-blink 1.1s ease-in-out infinite;
+  animation: smooth-blink 1.0s ease-in-out infinite;
+}
+
+.caret-active {
+  animation: none !important;
+  opacity: 1 !important;
 }
 
 /* Smooth transition for WPM dashboard elements */
