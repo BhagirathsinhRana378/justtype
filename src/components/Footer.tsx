@@ -1,10 +1,16 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 export default function Footer() {
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Hide footer on typing page to keep it single-screen (100vh)
   if (pathname === "/type" || pathname === "/test") {
@@ -25,7 +31,7 @@ export default function Footer() {
           <Link href="/settings" className="hover:text-foreground transition-colors">Settings</Link>
         </div>
         <div>
-          <p>&copy; {new Date().getFullYear()} JustType. Built with premium design precision.</p>
+          <p>&copy; {mounted ? new Date().getFullYear() : "2024"} JustType. Built with premium design precision.</p>
         </div>
       </div>
     </footer>

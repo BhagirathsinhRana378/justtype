@@ -28,6 +28,7 @@ export default function Home() {
   const [loadingStage, setLoadingStage] = useState(0);
   const [keystrokeLog, setKeystrokeLog] = useState<string[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [mounted, setMounted] = useState(false);
   
   const stages = [
     "Initializing Neural Engine...",
@@ -40,6 +41,7 @@ export default function Home() {
   const keys = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
   useEffect(() => {
+    setMounted(true);
     document.documentElement.classList.add("is-landing-page");
     
     // Mechanical Typing Burst Logic
@@ -89,9 +91,11 @@ export default function Home() {
                 className="absolute w-4 h-4 rounded-full bg-primary blur-sm"
                 style={{
                   left: `${15 + i * 10}%`,
-                  top: `${40 + Math.sin(i + loadingSpeed * 0.2) * 20}%`,
-                  opacity: Math.random() > 0.5 ? 1 : 0.3,
-                  transition: "all 0.1s ease-out"
+                  top: `${(40 + Math.sin(i + loadingSpeed * 0.2) * 20).toFixed(2)}%`,
+                  opacity: mounted ? (Math.random() > 0.5 ? 1 : 0.3) : 1,
+                  transitionProperty: "all",
+                  transitionDuration: "0.1s",
+                  transitionTimingFunction: "ease-out"
                 }}
               />
             ))}
@@ -285,7 +289,7 @@ export default function Home() {
                             key={j} 
                             className={`flex-1 ${spark.color} opacity-20 rounded-t-sm transition-all duration-500`}
                             style={{ 
-                              height: `${Math.random() * 80 + 20}%`,
+                              height: mounted ? `${(Math.random() * 80 + 20).toFixed(2)}%` : "50%",
                               animationDelay: `${j * 100}ms`
                             }}
                           />
