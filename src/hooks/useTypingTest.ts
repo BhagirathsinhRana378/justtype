@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { playKeySound } from "@/utils/audio";
+import { playKeySound, SoundType } from "@/utils/audio";
 import { saveSession, TypingSession, KeyTelemetry, generateAdaptiveWords, getSavedSessions, analyzeWeakKeys } from "@/utils/aiEngine";
 
 const DEFAULT_WORDS = [
@@ -40,7 +40,7 @@ export type KeyboardLayoutType = "qwerty" | "dvorak" | "colemak";
 export function useTypingTest() {
   const [mode, setMode] = useState<TestMode>("time");
   const [limit, setLimit] = useState<number>(30); // 30s or 25 words by default
-  const [soundType, setSoundType] = useState<"mechanical" | "click" | "bubble" | "silent">("click");
+  const [soundType, setSoundType] = useState<SoundType>("click");
   const [caretType, setCaretType] = useState<CaretType>("smooth");
   const [layout, setLayout] = useState<KeyboardLayoutType>("qwerty");
   
@@ -66,17 +66,15 @@ export function useTypingTest() {
     if (typeof window !== "undefined") {
       const savedMode = localStorage.getItem("justtype_config_mode") as TestMode;
       const savedLimit = localStorage.getItem("justtype_config_limit");
-      const savedSound = localStorage.getItem("justtype_config_sound") as "mechanical" | "click" | "bubble" | "silent" | null;
+      const savedSound = localStorage.getItem("justtype_config_sound") as SoundType;
       const savedCaret = localStorage.getItem("justtype_config_caret") as CaretType;
       const savedLayout = localStorage.getItem("justtype_config_layout") as KeyboardLayoutType;
 
-      /* eslint-disable react-hooks/set-state-in-effect */
       if (savedMode) setMode(savedMode);
       if (savedLimit) setLimit(parseInt(savedLimit));
       if (savedSound) setSoundType(savedSound);
       if (savedCaret) setCaretType(savedCaret);
       if (savedLayout) setLayout(savedLayout);
-      /* eslint-enable react-hooks/set-state-in-effect */
     }
   }, []);
 
@@ -95,7 +93,7 @@ export function useTypingTest() {
     }
   };
 
-  const updateSoundType = (newSound: "mechanical" | "click" | "bubble" | "silent") => {
+  const updateSoundType = (newSound: SoundType) => {
     setSoundType(newSound);
     if (typeof window !== "undefined") {
       localStorage.setItem("justtype_config_sound", newSound);
