@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Keyboard, Sparkles, BarChart3, Trophy, ChevronRight, Zap } from "lucide-react";
+import { Keyboard, Sparkles, BarChart3, ChevronRight, Zap } from "lucide-react";
 
 export default function Home() {
   return (
@@ -46,13 +46,13 @@ export default function Home() {
               <span>Status: Active</span>
             </div>
             <div className="text-xs text-[#8e8b82] space-y-1.5">
-              <p className="text-[#5db8a6]">// Analyzing keystroke cadence</p>
+              <p className="text-[#5db8a6]">{"// Analyzing keystroke cadence"}</p>
               <p><span className="text-[#cc785c]">const</span> userProfile = {"{"}</p>
               <p>&nbsp;&nbsp;avgWpm: <span className="text-[#e8a55a]">92</span>,</p>
               <p>&nbsp;&nbsp;weakKeys: [<span className="text-[#5db872]">&apos;k&apos;</span>, <span className="text-[#5db872]">&apos;q&apos;</span>, <span className="text-[#5db872]">&apos;z&apos;</span>],</p>
               <p>&nbsp;&nbsp;cadenceFocus: <span className="text-[#e8a55a]">94%</span></p>
               <p>{"};"}</p>
-              <p className="pt-2 text-[#cc785c]">// Generated weak-key word practice</p>
+              <p className="pt-2 text-[#cc785c]">{"// Generated weak-key word practice"}</p>
               <p className="text-[#faf9f5] font-sans text-base tracking-wide bg-[#121110] px-3 py-2 rounded border border-[#2a2926]">
                 quick skill kicker packed sketch
               </p>

@@ -5,25 +5,25 @@
   --font-mono: var(--font-geist-mono), monospace;
   --font-serif: var(--font-serif), serif;
 
-  --color-background: #121110;
-  --color-foreground: #faf9f5;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
   
-  --color-card: #1a1917;
-  --color-card-elevated: #252320;
-  --color-primary: #cc785c;
-  --color-primary-hover: #a9583e;
-  --color-primary-disabled: #3d3b37;
+  --color-card: var(--card);
+  --color-card-elevated: var(--card-elevated);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-disabled: var(--primary-disabled);
   
-  --color-ink: #faf9f5;
-  --color-muted: #8e8b82;
-  --color-muted-soft: #6c6a64;
-  --color-border-hairline: #2a2926;
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-muted-soft: var(--muted-soft);
+  --color-border-hairline: var(--border-hairline);
   
-  --color-accent-teal: #5db8a6;
-  --color-accent-amber: #e8a55a;
-  --color-success: #5db872;
-  --color-warning: #d4a017;
-  --color-error: #c64545;
+  --color-accent-teal: var(--accent-teal);
+  --color-accent-amber: var(--accent-amber);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
 
   --radius-xs: 4px;
   --radius-sm: 6px;
@@ -33,17 +33,145 @@
 }
 
 :root {
-  --background: #121110;
-  --foreground: #faf9f5;
+  /* Default Theme: Claude Cream (Cream Canvas) */
+  --background: #faf9f5;
+  --foreground: #141413;
+  --card: #efe9de;
+  --card-elevated: #e8e0d2;
+  --primary: #cc785c;
+  --primary-hover: #a9583e;
+  --primary-disabled: #e6dfd8;
+  --ink: #141413;
+  --muted: #6c6a64;
+  --muted-soft: #8e8b82;
+  --border-hairline: #e6dfd8;
+  --accent-teal: #5db8a6;
+  --accent-amber: #e8a55a;
+  --success: #5db872;
+  --warning: #d4a017;
+  --error: #c64545;
+
   --font-geist-sans: "Geist Sans", sans-serif;
   --font-geist-mono: "Geist Mono", monospace;
   --font-serif: "Cormorant Garamond", serif;
 }
 
+/* Charcoal Theme */
+:root[data-theme="charcoal"] {
+  --background: #121110;
+  --foreground: #faf9f5;
+  --card: #1a1917;
+  --card-elevated: #252320;
+  --primary: #cc785c;
+  --primary-hover: #a9583e;
+  --primary-disabled: #3d3b37;
+  --ink: #faf9f5;
+  --muted: #8e8b82;
+  --muted-soft: #6c6a64;
+  --border-hairline: #2a2926;
+  --accent-teal: #5db8a6;
+  --accent-amber: #e8a55a;
+  --success: #5db872;
+  --warning: #d4a017;
+  --error: #c64545;
+}
+
+/* Cyberpunk Theme */
+:root[data-theme="cyberpunk"] {
+  --background: #0b0712;
+  --foreground: #00f0ff;
+  --card: #190f2b;
+  --card-elevated: #291244;
+  --primary: #ff007f;
+  --primary-hover: #d6006c;
+  --primary-disabled: #2d1b38;
+  --ink: #00f0ff;
+  --muted: #ab57ce;
+  --muted-soft: #623077;
+  --border-hairline: #ff007f55;
+  --accent-teal: #00f0ff;
+  --accent-amber: #ffff00;
+  --success: #39ff14;
+  --warning: #ffff00;
+  --error: #ff007f;
+}
+
+/* Matrix Theme */
+:root[data-theme="matrix"] {
+  --background: #000000;
+  --foreground: #00ff00;
+  --card: #080808;
+  --card-elevated: #121212;
+  --primary: #00ff00;
+  --primary-hover: #00dd00;
+  --primary-disabled: #003300;
+  --ink: #00ff00;
+  --muted: #00aa00;
+  --muted-soft: #005500;
+  --border-hairline: #00ff0033;
+  --accent-teal: #5db8a6;
+  --accent-amber: #e8a55a;
+  --success: #00ff00;
+  --warning: #d4a017;
+  --error: #ff3333;
+}
+
+/* Sakura Theme */
+:root[data-theme="sakura"] {
+  --background: #fdf5f6;
+  --foreground: #5c3539;
+  --card: #f8e5e7;
+  --card-elevated: #f3d4d7;
+  --primary: #d67b84;
+  --primary-hover: #b8626b;
+  --primary-disabled: #ebd6d8;
+  --ink: #5c3539;
+  --muted: #8d5c61;
+  --muted-soft: #ab7f84;
+  --border-hairline: #ebd6d8;
+  --accent-teal: #6fb0a5;
+  --accent-amber: #e09e7c;
+  --success: #67aa79;
+  --warning: #cca262;
+  --error: #bf5656;
+}
+
+/* Deepsea Theme */
+:root[data-theme="deepsea"] {
+  --background: #0b132b;
+  --foreground: #e0e1dd;
+  --card: #1c2541;
+  --card-elevated: #3a506b;
+  --primary: #5bc0be;
+  --primary-hover: #45b0ae;
+  --primary-disabled: #1c2541;
+  --ink: #e0e1dd;
+  --muted: #8d99ae;
+  --muted-soft: #5d677a;
+  --border-hairline: #1c2541;
+  --accent-teal: #00b4d8;
+  --accent-amber: #fca311;
+  --success: #2ec4b6;
+  --warning: #fca311;
+  --error: #e63946;
+}
+
+/* Apply chosen font families based on setting classes */
+.font-setting-sans {
+  font-family: var(--font-geist-sans);
+}
+.font-setting-serif {
+  font-family: var(--font-serif);
+}
+.font-setting-mono {
+  font-family: var(--font-geist-mono);
+}
+
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Custom typing animations and styling */
@@ -53,11 +181,12 @@ body {
 }
 
 .caret-blink {
-  animation: blink 1s infinite;
+  animation: blink 1.0s step-end infinite;
 }
 
 /* Smooth transition for WPM dashboard elements */
 .transition-all-smooth {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
 

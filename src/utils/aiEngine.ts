@@ -16,6 +16,7 @@ export interface TypingSession {
   duration: number; // in seconds
   mode: string;     // 'time' | 'words' | 'quote' | 'custom'
   telemetry: KeyTelemetry[];
+  layout?: string;
 }
 
 export interface WeakKeyAnalysis {
@@ -181,10 +182,10 @@ export function calculateFocusScore(session: TypingSession): number {
   // Base score 100.
   // Deduct based on standard deviation (high deviation = irregular rhythm = lower focus)
   // Normal stdDev is around 50ms to 150ms. Deduct 1 point for every 8ms of stdDev above 80ms.
-  let deviationDeduction = Math.max(0, (stdDev - 80) / 8);
+  const deviationDeduction = Math.max(0, (stdDev - 80) / 8);
   
   // Deduct 5 points per pause
-  let pauseDeduction = pauseCount * 5;
+  const pauseDeduction = pauseCount * 5;
 
   const focusScore = Math.max(20, Math.round(100 - deviationDeduction - pauseDeduction));
   return focusScore;
@@ -214,7 +215,6 @@ export function predictGrowthTrend(sessions: TypingSession[]): GrowthPrediction 
   let sumY = 0;
   let sumXY = 0;
   let sumXX = 0;
-  let sumYY = 0;
 
   sessions.forEach((s, i) => {
     const x = i;
@@ -223,7 +223,6 @@ export function predictGrowthTrend(sessions: TypingSession[]): GrowthPrediction 
     sumY += y;
     sumXY += x * y;
     sumXX += x * x;
-    sumYY += y * y;
   });
 
   const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);

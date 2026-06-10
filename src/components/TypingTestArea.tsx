@@ -2,13 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { RefreshCw } from "lucide-react";
-import { CaretType } from "@/hooks/useTypingTest";
+import { CaretType, KeyboardLayoutType } from "@/hooks/useTypingTest";
+import VirtualKeyboard from "./VirtualKeyboard";
 
 interface TypingTestAreaProps {
   words: string[];
   typedInput: string;
   status: "idle" | "typing" | "completed";
   caretType: CaretType;
+  layout: KeyboardLayoutType;
   registerKeystroke: (char: string) => void;
   restartTest: () => void;
 }
@@ -18,17 +20,14 @@ export default function TypingTestArea({
   typedInput,
   status,
   caretType,
+  layout,
   registerKeystroke,
   restartTest,
 }: TypingTestAreaProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFocused, setIsFocused] = useState(false);
-
-  // Auto-focus input on mount or whenever the user clicks the area
-  useEffect(() => {
-    focusInput();
-  }, []);
+  const [pressedKeys, setPressedKeys] = useState<string[]>([]);
 
   const focusInput = () => {
     if (inputRef.current) {
@@ -36,7 +35,12 @@ export default function TypingTestArea({
     }
   };
 
-  // Keyboard listeners for focusing and shortcut restart (Tab key)
+  // Auto-focus input on mount or whenever the user clicks the area
+  useEffect(() => {
+    focusInput();
+  }, []);
+
+  // Keyboard listeners for focusing, shortcut restart (Tab key) and pressed keys
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       // Focus when user starts typing on any normal alphanumeric key
@@ -57,11 +61,25 @@ export default function TypingTestArea({
         restartTest();
         focusInput();
       }
+
+      // Track keydown state for virtual keyboard
+      const key = e.key.toLowerCase();
+      setPressedKeys((prev) => {
+        if (prev.includes(key)) return prev;
+        return [...prev, key];
+      });
+    };
+
+    const handleGlobalKeyUp = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      setPressedKeys((prev) => prev.filter((k) => k !== key));
     };
 
     window.addEventListener("keydown", handleGlobalKeyDown);
+    window.addEventListener("keyup", handleGlobalKeyUp);
     return () => {
       window.removeEventListener("keydown", handleGlobalKeyDown);
+      window.removeEventListener("keyup", handleGlobalKeyUp);
     };
   }, [isFocused, restartTest]);
 
@@ -83,8 +101,6 @@ export default function TypingTestArea({
     }
   };
 
-  // Construct target joined string
-  const targetText = words.join(" ");
   const currentInputLength = typedInput.length;
 
   // Render text layout character by character
@@ -97,12 +113,12 @@ export default function TypingTestArea({
       <div
         ref={containerRef}
         onClick={focusInput}
-        className="w-full max-w-4xl min-h-[160px] bg-[#1a1917] border border-[#2a2926] rounded-lg p-6 relative cursor-text select-none outline-none focus-within:ring-1 focus-within:ring-[#cc785c]/30 focus-within:border-[#cc785c] transition-all-smooth"
+        className="w-full max-w-4xl min-h-[160px] bg-card border border-border-hairline rounded-lg p-6 relative cursor-text select-none outline-none focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all-smooth"
       >
         {/* Unfocused overlay prompt */}
         {!isFocused && status !== "completed" && (
-          <div className="absolute inset-0 bg-[#121110]/80 backdrop-blur-xs flex items-center justify-center rounded-lg z-10 animate-fadeIn pointer-events-none">
-            <span className="text-[#cc785c] text-lg font-serif italic">
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-xs flex items-center justify-center rounded-lg z-10 animate-fadeIn pointer-events-none">
+            <span className="text-primary text-lg font-serif italic">
               ✦ Click here or press any key to focus and start typing...
             </span>
           </div>
@@ -125,7 +141,7 @@ export default function TypingTestArea({
         />
 
         {/* Text board render */}
-        <div className="font-mono text-xl md:text-2xl leading-relaxed text-[#6c6a64] flex flex-wrap tracking-wide">
+        <div className="font-mono text-xl md:text-2xl leading-relaxed text-muted-soft flex flex-wrap tracking-wide">
           {words.map((word, wordIndex) => {
             const wordChars = word.split("");
             const isLastWord = wordIndex === words.length - 1;
@@ -134,17 +150,15 @@ export default function TypingTestArea({
               <span key={wordIndex} className="inline-flex mr-[0.55em] mb-3 relative">
                 {wordChars.map((char, charIndex) => {
                   const absoluteIndex = charCounter++;
-                  let charClass = "text-[#6c6a64]";
-                  let isCurrent = absoluteIndex === currentInputLength;
-                  let isMistake = false;
+                  let charClass = "text-muted-soft";
+                  const isCurrent = absoluteIndex === currentInputLength;
 
                   if (absoluteIndex < currentInputLength) {
                     const typedChar = typedInput[absoluteIndex];
                     if (typedChar === char) {
-                      charClass = "text-[#faf9f5]"; // Correct
+                      charClass = "text-foreground font-semibold"; // Correct
                     } else {
-                      charClass = "text-[#c64545] border-b border-[#c64545]"; // Mistake
-                      isMistake = true;
+                      charClass = "text-error border-b border-error"; // Mistake
                     }
                   }
 
@@ -155,10 +169,10 @@ export default function TypingTestArea({
                         <span
                           className={`absolute ${
                             caretType === "block"
-                              ? "w-[0.6em] h-[1.2em] bg-[#cc785c]/80 -z-10 rounded-[2px]"
+                              ? "w-[0.6em] h-[1.2em] bg-primary/80 -z-10 rounded-[2px]"
                               : caretType === "underline"
-                              ? "w-[0.6em] h-[3px] bg-[#cc785c] bottom-0"
-                              : "w-[2px] h-[1.25em] bg-[#cc785c]" // smooth line
+                              ? "w-[0.6em] h-[3px] bg-primary bottom-0"
+                              : "w-[2px] h-[1.25em] bg-primary" // smooth line
                           } top-[0.1em] caret-blink transition-all duration-75`}
                         />
                       )}
@@ -170,17 +184,15 @@ export default function TypingTestArea({
                 {/* Handle space character at the end of word (except the last word) */}
                 {!isLastWord && (() => {
                   const spaceAbsoluteIndex = charCounter++;
-                  let spaceClass = "text-[#6c6a64]";
-                  let isCurrent = spaceAbsoluteIndex === currentInputLength;
-                  let isSpaceMistake = false;
+                  let spaceClass = "text-muted-soft";
+                  const isCurrent = spaceAbsoluteIndex === currentInputLength;
 
                   if (spaceAbsoluteIndex < currentInputLength) {
                     const typedChar = typedInput[spaceAbsoluteIndex];
                     if (typedChar === " ") {
-                      spaceClass = "text-[#faf9f5]";
+                      spaceClass = "text-foreground";
                     } else {
-                      spaceClass = "bg-[#c64545]/20 text-[#c64545]";
-                      isSpaceMistake = true;
+                      spaceClass = "bg-error/20 text-error";
                     }
                   }
 
@@ -190,10 +202,10 @@ export default function TypingTestArea({
                         <span
                           className={`absolute ${
                             caretType === "block"
-                              ? "w-[0.4em] h-[1.2em] bg-[#cc785c]/80 -z-10 rounded-[2px]"
+                              ? "w-[0.4em] h-[1.2em] bg-primary/80 -z-10 rounded-[2px]"
                               : caretType === "underline"
-                              ? "w-[0.4em] h-[3px] bg-[#cc785c] bottom-0"
-                              : "w-[2px] h-[1.25em] bg-[#cc785c]"
+                              ? "w-[0.4em] h-[3px] bg-primary bottom-0"
+                              : "w-[2px] h-[1.25em] bg-primary"
                           } top-[0.1em] caret-blink transition-all duration-75`}
                         />
                       )}
@@ -207,20 +219,27 @@ export default function TypingTestArea({
         </div>
       </div>
 
+      {/* Dynamic Virtual Keyboard */}
+      {status !== "completed" && (
+        <div className="w-full max-w-2xl mt-8 animate-fadeIn">
+          <VirtualKeyboard layout={layout} pressedKeys={pressedKeys} />
+        </div>
+      )}
+
       {/* Restart Info Panel */}
-      <div className="mt-6 flex items-center gap-6 text-sm text-[#8e8b82]">
+      <div className="mt-6 flex items-center gap-6 text-sm text-muted">
         <button
           onClick={() => {
             restartTest();
             focusInput();
           }}
-          className="flex items-center gap-2 px-4 py-2 bg-[#1a1917] hover:bg-[#252320] border border-[#2a2926] rounded-md text-[#faf9f5] hover:text-[#cc785c] transition-all-smooth focus:outline-none"
+          className="flex items-center gap-2 px-4 py-2 bg-card hover:bg-card-elevated border border-border-hairline rounded-md text-foreground hover:text-primary transition-all-smooth focus:outline-none cursor-pointer"
         >
           <RefreshCw className="w-4 h-4" />
           <span>Restart Test</span>
         </button>
-        <div className="hidden sm:flex items-center gap-1.5 font-mono text-xs text-[#6c6a64]">
-          <kbd className="px-1.5 py-0.5 bg-[#1a1917] border border-[#2a2926] rounded-sm text-[#8e8b82]">Tab</kbd>
+        <div className="hidden sm:flex items-center gap-1.5 font-mono text-xs text-muted-soft">
+          <kbd className="px-1.5 py-0.5 bg-card border border-border-hairline rounded-sm text-muted">Tab</kbd>
           <span>to restart</span>
         </div>
       </div>

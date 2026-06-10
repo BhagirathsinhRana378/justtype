@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { playKeySound } from "@/utils/audio";
-import { saveSession, TypingSession, KeyTelemetry, calculateFocusScore, generateAdaptiveWords, getSavedSessions, analyzeWeakKeys } from "@/utils/aiEngine";
+import { saveSession, TypingSession, KeyTelemetry, generateAdaptiveWords, getSavedSessions, analyzeWeakKeys } from "@/utils/aiEngine";
 
 const DEFAULT_WORDS = [
   "about", "above", "across", "action", "activity", "actor", "add", "address", "admit", "adopt",
@@ -35,12 +35,14 @@ const PRESET_QUOTES = [
 
 export type TestMode = "time" | "words" | "quote" | "custom";
 export type CaretType = "block" | "smooth" | "underline" | "hidden";
+export type KeyboardLayoutType = "qwerty" | "dvorak" | "colemak";
 
 export function useTypingTest() {
   const [mode, setMode] = useState<TestMode>("time");
   const [limit, setLimit] = useState<number>(30); // 30s or 25 words by default
   const [soundType, setSoundType] = useState<"mechanical" | "click" | "bubble" | "silent">("click");
   const [caretType, setCaretType] = useState<CaretType>("smooth");
+  const [layout, setLayout] = useState<KeyboardLayoutType>("qwerty");
   
   const [words, setWords] = useState<string[]>([]);
   const [typedInput, setTypedInput] = useState<string>("");
@@ -64,13 +66,17 @@ export function useTypingTest() {
     if (typeof window !== "undefined") {
       const savedMode = localStorage.getItem("justtype_config_mode") as TestMode;
       const savedLimit = localStorage.getItem("justtype_config_limit");
-      const savedSound = localStorage.getItem("justtype_config_sound") as any;
+      const savedSound = localStorage.getItem("justtype_config_sound") as "mechanical" | "click" | "bubble" | "silent" | null;
       const savedCaret = localStorage.getItem("justtype_config_caret") as CaretType;
+      const savedLayout = localStorage.getItem("justtype_config_layout") as KeyboardLayoutType;
 
+      /* eslint-disable react-hooks/set-state-in-effect */
       if (savedMode) setMode(savedMode);
       if (savedLimit) setLimit(parseInt(savedLimit));
       if (savedSound) setSoundType(savedSound);
       if (savedCaret) setCaretType(savedCaret);
+      if (savedLayout) setLayout(savedLayout);
+      /* eslint-enable react-hooks/set-state-in-effect */
     }
   }, []);
 
@@ -100,6 +106,13 @@ export function useTypingTest() {
     setCaretType(newCaret);
     if (typeof window !== "undefined") {
       localStorage.setItem("justtype_config_caret", newCaret);
+    }
+  };
+
+  const updateLayout = (newLayout: KeyboardLayoutType) => {
+    setLayout(newLayout);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("justtype_config_layout", newLayout);
     }
   };
 
@@ -157,6 +170,7 @@ export function useTypingTest() {
 
   // Load initial words
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     restartTest();
   }, [mode, limit, restartTest]);
 
@@ -203,11 +217,12 @@ export function useTypingTest() {
       accuracy: finalAccuracy,
       duration: finalElapsedTime,
       mode: mode,
-      telemetry: telemetryRef.current
+      telemetry: telemetryRef.current,
+      layout: layout
     };
     
     saveSession(session);
-  }, [words, mode]);
+  }, [words, mode, layout]);
 
   // Handle typing key presses
   const registerKeystroke = useCallback((char: string) => {
@@ -329,8 +344,10 @@ export function useTypingTest() {
       ? Math.round((correctCount / typedInput.length) * 100) 
       : 100;
       
+    /* eslint-disable react-hooks/set-state-in-effect */
     setWpm(currentWpm);
     setAccuracy(currentAccuracy);
+    /* eslint-enable react-hooks/set-state-in-effect */
     
     // Add data point to history chart data
     setHistory((prev) => [...prev, { time: elapsedTime, wpm: currentWpm, accuracy: currentAccuracy }]);
@@ -341,6 +358,7 @@ export function useTypingTest() {
     limit,
     soundType,
     caretType,
+    layout,
     words,
     typedInput,
     status,
@@ -350,13 +368,14 @@ export function useTypingTest() {
     wpm,
     accuracy,
     history,
-    telemetry: telemetryRef.current,
+    getTelemetry: () => telemetryRef.current,
     
     // Setters / Actions
     setMode: updateMode,
     setLimit: updateLimit,
     setSoundType: updateSoundType,
     setCaretType: updateCaretType,
+    setLayout: updateLayout,
     restartTest,
     registerKeystroke
   };
