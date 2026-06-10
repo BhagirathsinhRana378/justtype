@@ -208,24 +208,17 @@ body {
               text-shadow 200ms ease-out;
 }
 
-/* Active Character Focus */
+/* Active Character Focus - Calmer, professional focus */
 .active-char span {
-  text-shadow: 0 0 20px rgba(var(--primary-rgb), 0.5), 0 0 35px rgba(var(--primary-rgb), 0.2);
-  transform: translateY(-2px);
-  filter: brightness(1.2);
-  transition: all 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  filter: brightness(1.1);
+  transition: all 0.15s ease-out;
 }
 
-/* Letter Inertia / Pop Animation */
+/* Letter Inertia / Pop Animation - Subtle feedback */
 @keyframes type-pop {
   0% {
-    transform: scale(0.8) translateY(4px);
-    opacity: 0.6;
-  }
-  35% {
-    transform: scale(1.2) translateY(-3px);
-    opacity: 1;
-    text-shadow: 0 0 25px rgba(var(--primary-rgb), 0.6);
+    transform: scale(0.95) translateY(1px);
+    opacity: 0.8;
   }
   100% {
     transform: scale(1) translateY(0);
@@ -234,7 +227,7 @@ body {
 }
 
 .type-pop {
-  animation: type-pop 160ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: type-pop 120ms cubic-bezier(0.25, 1, 0.5, 1);
   display: inline-block;
 }
 

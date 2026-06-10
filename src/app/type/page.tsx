@@ -175,40 +175,46 @@ export default function TypePage() {
             {/* Center: Limit / Duration Options (Centered in the bar) */}
             <div className="flex-1 flex justify-center border-x border-border-hairline/60 px-6">
               {mode === "time" && (
-                <div className="flex items-center gap-1">
-                  {[15, 30, 60, 120].map((t) => (
-                    <button
-                      key={t}
-                      onClick={() => setLimit(t)}
-                      className={`min-w-[50px] px-4 py-1.5 rounded-lg text-base transition-all duration-200 cursor-pointer font-bold ${
-                        limit === t 
-                          ? "text-primary bg-primary/10 ring-1 ring-primary/30" 
-                          : "hover:text-foreground text-muted-soft hover:bg-card/80"
-                      }`}
-                    >
-                      {t}
-                    </button>
+                <div className="flex items-center gap-2">
+                  {[15, 30, 60, 120].map((t, i, arr) => (
+                    <div key={t} className="flex items-center">
+                      <button
+                        onClick={() => setLimit(t)}
+                        className={`px-3 py-1.5 rounded-lg text-sm transition-all duration-200 cursor-pointer font-bold ${
+                          limit === t 
+                            ? "text-primary bg-primary/15 shadow-sm scale-110" 
+                            : "hover:text-foreground text-muted-soft/60 hover:bg-card/80"
+                        }`}
+                      >
+                        {t}s
+                      </button>
+                      {i < arr.length - 1 && (
+                        <span className="mx-1 text-muted-soft/30 select-none">·</span>
+                      )}
+                    </div>
                   ))}
-                  <span className="ml-2 text-xs font-bold text-muted-soft/60 uppercase tracking-tighter">seconds</span>
                 </div>
               )}
 
               {mode === "words" && (
-                <div className="flex items-center gap-1">
-                  {[10, 25, 50, 100].map((w) => (
-                    <button
-                      key={w}
-                      onClick={() => setLimit(w)}
-                      className={`min-w-[50px] px-4 py-1.5 rounded-lg text-base transition-all duration-200 cursor-pointer font-bold ${
-                        limit === w 
-                          ? "text-primary bg-primary/10 ring-1 ring-primary/30" 
-                          : "hover:text-foreground text-muted-soft hover:bg-card/80"
-                      }`}
-                    >
-                      {w}
-                    </button>
+                <div className="flex items-center gap-2">
+                  {[10, 25, 50, 100].map((w, i, arr) => (
+                    <div key={w} className="flex items-center">
+                      <button
+                        onClick={() => setLimit(w)}
+                        className={`px-3 py-1.5 rounded-lg text-sm transition-all duration-200 cursor-pointer font-bold ${
+                          limit === w 
+                            ? "text-primary bg-primary/15 shadow-sm scale-110" 
+                            : "hover:text-foreground text-muted-soft/60 hover:bg-card/80"
+                        }`}
+                      >
+                        {w}
+                      </button>
+                      {i < arr.length - 1 && (
+                        <span className="mx-1 text-muted-soft/30 select-none">·</span>
+                      )}
+                    </div>
                   ))}
-                  <span className="ml-2 text-xs font-bold text-muted-soft/60 uppercase tracking-tighter">words</span>
                 </div>
               )}
             </div>
