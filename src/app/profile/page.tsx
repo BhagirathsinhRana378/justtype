@@ -177,7 +177,7 @@ export default function ProfilePage() {
               Your level status and accomplishments logs compile as you run test sessions. Try launching a test session first!
             </p>
             <Link
-              href="/test"
+              href="/type"
               className="px-6 py-3 bg-primary hover:bg-primary-hover text-white text-sm font-medium rounded-md transition-all-smooth"
             >
               Start Typing

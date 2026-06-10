@@ -19,7 +19,7 @@ export default function Home() {
           </p>
           <div className="flex flex-col sm:flex-row items-stretch gap-4 w-full sm:w-auto">
             <Link
-              href="/test"
+              href="/type"
               className="flex items-center justify-center gap-2 px-6 py-3 bg-[#cc785c] hover:bg-[#a9583e] text-white font-medium rounded-md shadow-md hover:shadow-lg transition-all-smooth text-center"
             >
               <span>Start Typing Test</span>
@@ -119,7 +119,7 @@ export default function Home() {
           Run your first test offline. Your data is stored locally in your browser to maintain total privacy.
         </p>
         <Link
-          href="/test"
+          href="/type"
           className="px-8 py-3 bg-[#cc785c] hover:bg-[#a9583e] text-white font-medium rounded-md transition-all-smooth"
         >
           Begin Free Test

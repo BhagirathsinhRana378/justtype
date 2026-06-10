@@ -68,7 +68,7 @@ export default function RootLayout({
               <span className="text-muted-soft">| AI-Enhanced Keyboarding</span>
             </div>
             <div className="flex space-x-6">
-              <Link href="/test" className="hover:text-foreground transition-colors">Test</Link>
+              <Link href="/type" className="hover:text-foreground transition-colors">Type</Link>
               <Link href="/dashboard" className="hover:text-foreground transition-colors">Analytics</Link>
               <Link href="/ai-coach" className="hover:text-foreground transition-colors">AI Coach</Link>
               <Link href="/settings" className="hover:text-foreground transition-colors">Settings</Link>

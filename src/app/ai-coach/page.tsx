@@ -139,7 +139,7 @@ export default function AICoachPage() {
               Your AI coach requires keystroke telemetry logs to analyze finger latency anomalies and generate custom practice sequences.
             </p>
             <Link
-              href="/test"
+              href="/type"
               className="px-6 py-3 bg-primary hover:bg-primary-hover text-white text-sm font-medium rounded-md transition-all-smooth"
             >
               Take First Test
@@ -208,7 +208,7 @@ export default function AICoachPage() {
                 </div>
 
                 <Link
-                  href="/test"
+                  href="/type"
                   onClick={selectCustomPracticeMode}
                   className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary hover:bg-primary-hover text-white text-sm font-semibold rounded-md shadow transition-all-smooth cursor-pointer mt-2 w-fit"
                 >

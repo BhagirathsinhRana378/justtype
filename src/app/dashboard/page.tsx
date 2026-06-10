@@ -203,7 +203,7 @@ export default function DashboardPage() {
               Complete typing tests to compile metrics on keyboard latency, accuracy variance, and custom growth analytics.
             </p>
             <Link
-              href="/test"
+              href="/type"
               className="px-6 py-3 bg-primary hover:bg-primary-hover text-white text-sm font-medium rounded-md transition-all-smooth"
             >
               Launch Core Workbench

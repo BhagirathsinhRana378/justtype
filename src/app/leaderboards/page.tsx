@@ -173,7 +173,7 @@ export default function LeaderboardsPage() {
               </div>
 
               <Link
-                href="/test"
+                href="/type"
                 onClick={startDailyChallenge}
                 className="w-full py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-md shadow transition-all-smooth cursor-pointer flex items-center justify-center gap-1.5"
               >
