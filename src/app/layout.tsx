@@ -24,9 +24,58 @@ const cormorantGaramond = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: "JustType | AI-Powered Premium Typing Test",
-  description: "An elegant, AI-driven typing test platform that detects weak keys, predicts typing growth, and designs custom coach lessons to boost your word-per-minute speed.",
-  keywords: ["typing test", "wpm tracker", "typing accuracy", "keyboard training", "AI coach"],
+  title: "Typing Test | JustType - Free Online Typing Speed Test & AI Coach",
+  description: "Take a free online typing test to measure your WPM speed and accuracy. JustType is the best typing website featuring an AI typing coach, real-time analytics, and personalized typing practice to help you improve typing speed and keyboard skills.",
+  keywords: [
+    "typing test", 
+    "free typing test", 
+    "online typing test", 
+    "typing speed test", 
+    "typing practice", 
+    "typing trainer", 
+    "typing website", 
+    "typing accuracy test", 
+    "words per minute test", 
+    "WPM test", 
+    "typing improvement", 
+    "AI typing coach", 
+    "typing challenge", 
+    "fast typing test", 
+    "keyboard typing test", 
+    "typing skills", 
+    "typing analytics", 
+    "typing performance", 
+    "typing practice online", 
+    "typing tracker", 
+    "improve typing speed", 
+    "typing game", 
+    "real time typing test", 
+    "typing statistics", 
+    "typing benchmark", 
+    "typing test online"
+  ],
+  openGraph: {
+    title: "Typing Test | JustType - Professional Typing Speed Test",
+    description: "Measure your typing speed (WPM) and accuracy with our advanced typing test. Get AI-powered insights and personalized practice lessons to master the keyboard.",
+    url: "https://justtype.io",
+    siteName: "JustType",
+    images: [
+      {
+        url: "/web-app-manifest-512x512.png",
+        width: 512,
+        height: 512,
+        alt: "JustType - AI-Powered Typing Test",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Typing Test | JustType - Free Online Typing Speed Test",
+    description: "Improve your typing speed with our AI-driven typing test. Analyze your keystrokes and get custom lessons to boost your WPM.",
+    images: ["/web-app-manifest-512x512.png"],
+  },
   icons: {
     icon: [
       { url: "/favicon-96x96.png", sizes: "96x96", type: "image/png" },

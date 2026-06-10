@@ -437,6 +437,52 @@ export default function Home() {
           <div className="absolute inset-0 bg-primary translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
         </Link>
       </section>
+
+      {/* SEO Content Section */}
+      <section className="px-6 py-24 border-t border-border-hairline bg-background z-20">
+        <div className="max-w-4xl mx-auto prose prose-neutral dark:prose-invert prose-headings:font-serif">
+          <h2 className="text-3xl md:text-5xl font-serif text-foreground mb-12 text-center">
+            Master Your Keyboard Skills with our <span className="italic">Online Typing Test</span>
+          </h2>
+          
+          <div className="grid grid-cols-1 gap-12 text-muted leading-relaxed">
+            <div className="space-y-6">
+              <p>
+                In today's digital-first world, your keyboard is the primary bridge between your thoughts and the screen. Whether you're a software developer, a creative writer, or a student, your <strong>typing speed</strong> and <strong>typing accuracy</strong> directly impact your productivity. At JustType, we offer a comprehensive <strong>free typing test</strong> designed to help you measure, analyze, and improve your performance in real-time. Our <strong>online typing test</strong> goes beyond simple metrics, providing deep insights into your mechanical rhythm and finger-by-finger efficiency.
+              </p>
+
+              <h3 className="text-2xl font-serif text-foreground">Why Take a Typing Speed Test?</h3>
+              <p>
+                Taking a <strong>typing speed test</strong> regularly is essential for anyone looking to optimize their workflow. Most people type at an average speed of 40 words per minute (WPM), but with consistent <strong>typing practice</strong>, you can easily double that speed. A higher <strong>WPM test</strong> score means you can finish emails faster, write code more efficiently, and communicate more effectively in professional environments. Our <strong>typing website</strong> provides a <strong>fast typing test</strong> experience that benchmarks your current level against global standards, helping you set realistic goals for <strong>typing improvement</strong>.
+              </p>
+
+              <h3 className="text-2xl font-serif text-foreground">How Our Free Typing Test Works</h3>
+              <p>
+                JustType's <strong>typing accuracy test</strong> is built on a custom neural engine that monitors more than just correct characters. As you use our <strong>typing trainer</strong>, we track your "burst cadence"—the speed at which you type specific letter combinations. This <strong>real time typing test</strong> calculates your <strong>words per minute test</strong> results instantly, while also mapping your "keystroke latency" to identify exactly which keys are slowing you down. Whether you're doing a <strong>keyboard typing test</strong> to check your speed or a deep <strong>typing analytics</strong> session to find weak spots, our platform delivers professional-grade data.
+              </p>
+
+              <h3 className="text-2xl font-serif text-foreground">Advanced Typing Practice Online</h3>
+              <p>
+                Many <strong>typing practice online</strong> tools focus only on repetition. JustType is different. We feature an <strong>AI typing coach</strong> that analyzes your <strong>typing statistics</strong> to generate custom practice lessons. If you struggle with the "Q" and "P" keys, the coach designs a <strong>typing challenge</strong> specifically to strengthen those neural paths. This targeted approach to <strong>typing skills</strong> development ensures that you spend your time practicing where it matters most, leading to faster <strong>typing performance</strong> gains compared to traditional methods.
+              </p>
+
+              <h3 className="text-2xl font-serif text-foreground">Improve Typing Speed with AI-Powered Insights</h3>
+              <p>
+                To <strong>improve typing speed</strong>, you need more than just a <strong>typing tracker</strong>; you need a roadmap. Our <strong>typing benchmark</strong> system uses regression modeling to forecast your growth. By analyzing your historical <strong>typing test online</strong> data, we can predict when you'll hit your next milestone, whether that's 80, 100, or 120 WPM. This gamified approach makes our <strong>typing game</strong> elements feel rewarding while maintaining the professional depth of a serious <strong>typing performance</strong> tool.
+              </p>
+
+              <h3 className="text-2xl font-serif text-foreground">The Best Typing Website for Professionals</h3>
+              <p>
+                Privacy and performance are at the core of JustType. Unlike other <strong>typing website</strong> platforms, we process your <strong>typing test</strong> data locally in your browser. This means your biometric typing patterns never leave your device. We believe that a <strong>free typing test</strong> should be accessible, fast, and secure. Whether you're here for a quick <strong>typing speed test</strong> or a long-term <strong>typing practice</strong> regimen, JustType provides the tools you need to master the art of mechanical precision.
+              </p>
+              
+              <p>
+                Start your journey today. Take a <strong>typing test</strong>, consult your <strong>AI typing coach</strong>, and break through your limitations. With JustType, every keystroke is a step toward becoming a faster, more accurate, and more confident typist. Join thousands of users who are already using our <strong>online typing test</strong> to revolutionize their digital interaction.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
