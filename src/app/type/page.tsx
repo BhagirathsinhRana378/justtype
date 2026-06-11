@@ -4,15 +4,156 @@ import { useState, useEffect, useMemo } from "react";
 import { useTypingTest, KeyboardLayoutType, CaretType } from "@/hooks/useTypingTest";
 import TypingTestArea from "@/components/TypingTestArea";
 import VirtualKeyboard from "@/components/VirtualKeyboard";
-import { Clock, FileText, Quote, Sparkles, Volume2, CheckCircle, RefreshCw, BarChart3, Keyboard } from "lucide-react";
+import { Clock, FileText, Quote, Sparkles, Keyboard } from "lucide-react";
 import { calculateFocusScore, getSavedSessions } from "@/utils/aiEngine";
-import Link from "next/link";
+
+// SVG Line Chart Component for score display
+interface ChartProps {
+  history: { time: number; wpm: number; accuracy: number }[];
+  errorsPerSecond: Record<number, number>;
+  elapsedTime: number;
+}
+
+const getSvgCoords = (
+  time: number,
+  wpmValue: number,
+  maxWpm: number,
+  elapsedTime: number,
+  svgWidth: number,
+  svgHeight: number,
+  paddingX: number,
+  paddingY: number
+) => {
+  const x = paddingX + ((time - 1) / Math.max(1, elapsedTime - 1)) * (svgWidth - 2 * paddingX);
+  const y = svgHeight - paddingY - (wpmValue / maxWpm) * (svgHeight - 2 * paddingY);
+  return { x, y };
+};
+
+const ScoreChart: React.FC<ChartProps> = ({ history, errorsPerSecond, elapsedTime }) => {
+  const points = useMemo(() => {
+    if (!history || history.length === 0) return [];
+    
+    return history.map(h => {
+      // Calculate raw WPM mathematically: raw = wpm / accuracy
+      const rawWpm = h.accuracy > 0 ? Math.round((h.wpm * 100) / h.accuracy) : h.wpm;
+      return {
+        time: h.time,
+        wpm: h.wpm,
+        rawWpm: Math.min(250, rawWpm), // cap to avoid crazy spikes
+        errors: errorsPerSecond[h.time] || 0
+      };
+    });
+  }, [history, errorsPerSecond]);
+
+  const maxWpm = useMemo(() => {
+    if (points.length === 0) return 80;
+    const maxVal = Math.max(...points.map(p => Math.max(p.wpm, p.rawWpm)));
+    return Math.max(80, Math.ceil((maxVal + 10) / 20) * 20); // round up to nearest 20
+  }, [points]);
+
+  const svgWidth = 700;
+  const svgHeight = 200;
+  const paddingX = 40;
+  const paddingY = 20;
+
+  const wpmPath = useMemo(() => {
+    if (points.length === 0) return "";
+    return points.map((p, idx) => {
+      const { x, y } = getSvgCoords(p.time, p.wpm, maxWpm, elapsedTime, svgWidth, svgHeight, paddingX, paddingY);
+      return `${idx === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`;
+    }).join(" ");
+  }, [points, maxWpm, elapsedTime]);
+
+  const rawWpmPath = useMemo(() => {
+    if (points.length === 0) return "";
+    return points.map((p, idx) => {
+      const { x, y } = getSvgCoords(p.time, p.rawWpm, maxWpm, elapsedTime, svgWidth, svgHeight, paddingX, paddingY);
+      return `${idx === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`;
+    }).join(" ");
+  }, [points, maxWpm, elapsedTime]);
+
+  return (
+    <div className="w-full h-[200px] relative font-mono text-[9px] text-muted-soft/40 select-none">
+      {/* Y-Axis Labels */}
+      <div className="absolute left-0 top-0 bottom-0 w-8 flex flex-col justify-between items-end pr-2 text-[8px] pointer-events-none py-[16px]">
+        <span>{maxWpm}</span>
+        <span>{Math.round(maxWpm * 0.75)}</span>
+        <span>{Math.round(maxWpm * 0.5)}</span>
+        <span>{Math.round(maxWpm * 0.25)}</span>
+        <span>0</span>
+      </div>
+
+      {/* SVG Container */}
+      <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="w-full h-full overflow-visible">
+        {/* Horizontal Dotted Gridlines */}
+        {[0.25, 0.5, 0.75, 1.0].map((ratio, idx) => {
+          const y = paddingY + (1 - ratio) * (svgHeight - 2 * paddingY);
+          return (
+            <line
+              key={idx}
+              x1={paddingX}
+              y1={y}
+              x2={svgWidth - paddingX}
+              y2={y}
+              stroke="var(--border-hairline)"
+              strokeOpacity="0.15"
+              strokeDasharray="3 3"
+            />
+          );
+        })}
+
+        {points.length > 1 && (
+          <>
+            {/* Raw WPM path (dashed gray) */}
+            <path
+              d={rawWpmPath}
+              fill="none"
+              stroke="var(--muted-soft)"
+              strokeOpacity="0.25"
+              strokeWidth="1.5"
+              strokeDasharray="3 3"
+            />
+            {/* WPM path (solid yellow/primary) */}
+            <path
+              d={wpmPath}
+              fill="none"
+              stroke="var(--primary)"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </>
+        )}
+
+        {/* Error markers (red 'x') */}
+        {points.map((p) => {
+          if (p.errors > 0) {
+            const { x, y } = getSvgCoords(p.time, p.rawWpm, maxWpm, elapsedTime, svgWidth, svgHeight, paddingX, paddingY);
+            return (
+              <g key={p.time} className="text-error">
+                <line x1={x - 2.5} y1={y - 2.5} x2={x + 2.5} y2={y + 2.5} stroke="currentColor" strokeWidth="1.5" />
+                <line x1={x - 2.5} y1={y + 2.5} x2={x + 2.5} y2={y - 2.5} stroke="currentColor" strokeWidth="1.5" />
+              </g>
+            );
+          }
+          return null;
+        })}
+      </svg>
+
+      {/* X-Axis labels */}
+      <div className="absolute left-[40px] right-[40px] bottom-0 flex justify-between text-[8px] pointer-events-none">
+        <span>1s</span>
+        <span>{Math.round(elapsedTime / 2)}s</span>
+        <span>{elapsedTime}s</span>
+      </div>
+    </div>
+  );
+};
 
 export default function TypePage() {
   const {
     mode,
     limit,
-    soundType,
     caretType,
     layout,
     words,
@@ -20,13 +161,12 @@ export default function TypePage() {
     status,
     timeLeft,
     elapsedTime,
-    rawMistakes,
     wpm,
     accuracy,
+    history,
     getTelemetry,
     setMode,
     setLimit,
-    setSoundType,
     setCaretType,
     setLayout,
     restartTest,
@@ -132,6 +272,56 @@ export default function TypePage() {
 
   const isFocusMode = status === "typing";
 
+  // Group errors by second from telemetry data
+  const errorsPerSecond = useMemo(() => {
+    const telemetry = getTelemetry();
+    if (telemetry.length === 0) return {};
+    const start = telemetry[0].timestamp;
+    const errorMap: Record<number, number> = {};
+    telemetry.forEach((t) => {
+      if (!t.isCorrect) {
+        const sec = Math.min(
+          elapsedTime || 1,
+          Math.max(1, Math.round((t.timestamp - start) / 1000))
+        );
+        errorMap[sec] = (errorMap[sec] || 0) + 1;
+      }
+    });
+    return errorMap;
+  }, [getTelemetry, elapsedTime]);
+
+  // Calculate correct, incorrect, extra, and missed character counts
+  const charStats = useMemo(() => {
+    const telemetry = getTelemetry();
+    let correct = 0;
+    let incorrect = 0;
+    let extra = 0;
+    
+    telemetry.forEach((t) => {
+      if (t.isCorrect) {
+        correct++;
+      } else {
+        if (t.key === "") {
+          extra++;
+        } else {
+          incorrect++;
+        }
+      }
+    });
+
+    const targetText = words.join(" ");
+    let missed = 0;
+    if (status === "completed") {
+      for (let i = typedInput.length; i < targetText.length; i++) {
+        if (targetText[i] !== " ") {
+          missed++;
+        }
+      }
+    }
+
+    return { correct, incorrect, extra, missed };
+  }, [getTelemetry, words, typedInput.length, status]);
+
   return (
     <div className="w-full flex-1 min-h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)] overflow-hidden flex flex-col justify-between items-center bg-background relative select-none px-4 sm:px-6 py-6 md:py-8 z-10">
       
@@ -140,7 +330,7 @@ export default function TypePage() {
           {/* 1. COMPACT CONTROLS TOOLBAR */}
           <div 
             className={`w-full max-w-[850px] flex items-center justify-between bg-card/25 border border-border-hairline rounded-[12px] px-6 h-[52px] font-mono text-sm text-muted gap-4 overflow-x-auto whitespace-nowrap scrollbar-none transition-all duration-300 shrink-0 ${
-              isFocusMode ? "opacity-20 pointer-events-none" : "opacity-100"
+              isFocusMode ? "opacity-15 pointer-events-none" : "opacity-100"
             }`}
           >
             {/* Left: Mode Selector */}
@@ -230,7 +420,7 @@ export default function TypePage() {
               )}
             </div>
 
-            {/* Right: Layout, Sound & Caret Dropdowns */}
+            {/* Right: Layout & Caret Dropdowns (No Sound Section) */}
             <div className="flex items-center space-x-3 pl-2 shrink-0">
               {/* Layout */}
               <div className="flex items-center space-x-1 font-sans">
@@ -243,21 +433,6 @@ export default function TypePage() {
                   <option value="qwerty" className="bg-card">QWERTY</option>
                   <option value="dvorak" className="bg-card">Dvorak</option>
                   <option value="colemak" className="bg-card">Colemak</option>
-                </select>
-              </div>
-
-              {/* Sound */}
-              <div className="flex items-center space-x-1 font-sans">
-                <Volume2 className="w-3.5 h-3.5 text-muted-soft" />
-                <select
-                  value={soundType}
-                  onChange={(e) => setSoundType(e.target.value as Parameters<typeof setSoundType>[0])}
-                  className="bg-transparent text-muted hover:text-foreground text-[12.5px] outline-none border-none cursor-pointer pr-1"
-                >
-                  <option value="natural" className="bg-card">Natural</option>
-                  <option value="signature" className="bg-card">Signature</option>
-                  <option value="typeist" className="bg-card">Typeist</option>
-                  <option value="silent" className="bg-card">Silent</option>
                 </select>
               </div>
 
@@ -283,7 +458,7 @@ export default function TypePage() {
           <div 
             className="w-full flex-1 flex flex-col justify-center items-center py-2 transition-all duration-300 ease-in-out"
             style={{
-              maxWidth: isFocusMode ? "1550px" : "850px",
+              maxWidth: isFocusMode ? "1080px" : "850px",
             }}
           >
             {/* Live stats HUD - Minimal design */}
@@ -337,7 +512,10 @@ export default function TypePage() {
                 }}
                 className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer"
               >
-                <RefreshCw className="w-3 h-3" />
+                {/* Circular Restart arrow SVG */}
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89M9 9.5a2.5 2.5 0 115 0" />
+                </svg>
                 <span>Restart</span>
               </button>
               <span>•</span>
@@ -353,8 +531,8 @@ export default function TypePage() {
           <div 
             className={`w-full max-w-[740px] transition-all duration-300 shrink-0 select-none ${
               isFocusMode 
-                ? "opacity-15 translate-y-6 pointer-events-none" 
-                : "opacity-100 translate-y-0"
+                ? "translate-y-4 pointer-events-none" 
+                : "translate-y-0"
             }`}
           >
             <VirtualKeyboard 
@@ -364,84 +542,143 @@ export default function TypePage() {
               heatmapData={heatmapData}
               interactive={false}
               nextChar={nextChar}
+              isFocusMode={isFocusMode}
             />
           </div>
         </>
       ) : (
-        /* Finished Test Scorecard Centered Vertically */
-        <div className="w-full flex-1 flex items-center justify-center animate-fadeIn">
-          <div className="w-full max-w-[75ch] bg-card/40 border border-border-hairline rounded-lg p-6 flex flex-col gap-6 shadow-xs">
-            <div className="flex items-center justify-between border-b border-border-hairline/80 pb-3">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-success" />
-                <h2 className="text-base font-serif text-foreground">Session Complete</h2>
+        /* Finished Test Scorecard exactly matching the reference Monkeytype image */
+        <div className="w-full flex-1 flex flex-col items-center justify-center max-w-[960px] py-4 animate-fadeIn font-mono">
+          <div className="w-full flex flex-col md:flex-row items-stretch gap-6 mb-6">
+            
+            {/* Left Column: WPM and Accuracy stacked vertically */}
+            <div className="flex flex-col justify-center items-start md:w-[180px] gap-6 pl-4 select-none shrink-0">
+              <div>
+                <span className="text-muted-soft text-lg font-mono tracking-wide block mb-0.5">wpm</span>
+                <span className="text-[64px] md:text-[76px] font-bold text-primary leading-none block">{wpm}</span>
               </div>
-              <button
-                onClick={restartTest}
-                className="flex items-center gap-1 px-3 py-1 bg-primary hover:bg-primary/90 text-white text-xs font-mono rounded transition-colors cursor-pointer"
-              >
-                <RefreshCw className="w-3 h-3" />
-                <span>Reset</span>
-              </button>
+              <div>
+                <span className="text-muted-soft text-lg font-mono tracking-wide block mb-0.5">acc</span>
+                <span className="text-[64px] md:text-[76px] font-bold text-primary leading-none block">{accuracy}%</span>
+              </div>
             </div>
 
-            {/* Scorecard Stats Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-              
-              <div className="bg-background/50 border border-border-hairline/60 p-3 rounded-md">
-                <p className="text-[10px] font-mono text-muted uppercase tracking-wider mb-0.5">Speed</p>
-                <p className="text-2xl font-mono font-bold text-primary">{wpm}</p>
-                <p className="text-[9px] font-mono text-muted-soft leading-none">WPM</p>
-              </div>
-
-              <div className="bg-background/50 border border-border-hairline/60 p-3 rounded-md">
-                <p className="text-[10px] font-mono text-muted uppercase tracking-wider mb-0.5">Accuracy</p>
-                <p className="text-2xl font-mono font-bold text-success">{accuracy}%</p>
-                <p className="text-[9px] font-mono text-muted-soft leading-none">correct keys</p>
-              </div>
-
-              <div className="bg-background/50 border border-border-hairline/60 p-3 rounded-md">
-                <p className="text-[10px] font-mono text-muted uppercase tracking-wider mb-0.5">Focus</p>
-                <p className="text-2xl font-mono font-bold text-accent-teal">{finalFocusScore}%</p>
-                <p className="text-[9px] font-mono text-muted-soft leading-none">consistency</p>
-              </div>
-
-              <div className="bg-background/50 border border-border-hairline/60 p-3 rounded-md">
-                <p className="text-[10px] font-mono text-muted uppercase tracking-wider mb-0.5">Mistakes</p>
-                <p className="text-2xl font-mono font-bold text-error">{rawMistakes}</p>
-                <p className="text-[9px] font-mono text-muted-soft leading-none">incorrect keys</p>
-              </div>
-
-            </div>
-
-            {/* Redirection Prompt */}
-            <div className="flex flex-col sm:flex-row items-center justify-between bg-background/30 border border-border-hairline rounded-md p-3.5 gap-3">
-              <div className="flex items-center gap-3 text-left">
-                <div className="p-2 bg-primary/10 text-primary rounded shrink-0">
-                  <BarChart3 className="w-3.5 h-3.5" />
-                </div>
-                <div>
-                  <h3 className="text-xs font-semibold text-foreground">Detailed Latency Heatmap</h3>
-                  <p className="text-[11px] text-muted leading-tight">Inspect standard deviations and identify exact letters that slow your transition flow.</p>
-                </div>
-              </div>
-              <div className="flex gap-2 w-full sm:w-auto shrink-0 font-mono">
-                <Link
-                  href="/dashboard"
-                  className="flex-1 text-center px-3 py-1.5 border border-border-hairline hover:border-primary/50 text-xs rounded text-foreground hover:text-primary transition-colors whitespace-nowrap"
-                >
-                  Dashboard
-                </Link>
-                <Link
-                  href="/ai-coach"
-                  className="flex-1 text-center px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 border border-primary/25 text-xs rounded transition-colors whitespace-nowrap"
-                >
-                  AI Coach
-                </Link>
-              </div>
+            {/* Right Column: Custom SVG Score Chart */}
+            <div className="flex-1 min-h-[220px] bg-background/20 border border-border-hairline/20 rounded-xl p-4 flex items-center justify-center">
+              <ScoreChart 
+                history={history} 
+                errorsPerSecond={errorsPerSecond} 
+                elapsedTime={elapsedTime} 
+              />
             </div>
 
           </div>
+
+          {/* Score Details Row */}
+          <div className="w-full grid grid-cols-2 md:grid-cols-6 gap-6 text-left border-t border-border-hairline/10 pt-5 px-4 select-none">
+            
+            <div>
+              <p className="text-[10px] text-muted-soft tracking-wider mb-0.5">test type</p>
+              <p className="text-base font-semibold text-primary">{mode} {limit}</p>
+              <p className="text-[9px] text-muted-soft/50">english</p>
+            </div>
+
+            <div>
+              <p className="text-[10px] text-muted-soft tracking-wider mb-0.5">other</p>
+              <p className="text-base font-semibold text-primary">
+                {accuracy < 85 ? "invalid (accuracy)" : "none"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-[10px] text-muted-soft tracking-wider mb-0.5">raw</p>
+              <p className="text-base font-semibold text-primary">
+                {accuracy > 0 ? Math.round((wpm * 100) / accuracy) : wpm}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-[10px] text-muted-soft tracking-wider mb-0.5">characters</p>
+              <p className="text-base font-semibold text-primary">
+                {charStats.correct}/{charStats.incorrect}/{charStats.extra}/{charStats.missed}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-[10px] text-muted-soft tracking-wider mb-0.5">consistency</p>
+              <p className="text-base font-semibold text-primary">{finalFocusScore}%</p>
+            </div>
+
+            <div>
+              <p className="text-[10px] text-muted-soft tracking-wider mb-0.5">time</p>
+              <p className="text-base font-semibold text-primary">{elapsedTime}s</p>
+              <p className="text-[9px] text-muted-soft/50">00:00:{elapsedTime < 10 ? `0${elapsedTime}` : elapsedTime} session</p>
+            </div>
+
+          </div>
+
+          {/* Toolbar Buttons Row */}
+          <div className="w-full flex justify-center items-center gap-8 mt-10 mb-5">
+            <button
+              onClick={restartTest}
+              className="p-2 rounded-lg text-muted-soft hover:text-foreground hover:bg-card/40 transition-colors cursor-pointer"
+              title="Next test"
+            >
+              {/* Chevron right SVG */}
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+            
+            <button
+              onClick={restartTest}
+              className="p-2 rounded-lg text-muted-soft hover:text-foreground hover:bg-card/40 transition-colors cursor-pointer"
+              title="Restart test"
+            >
+              {/* Reset circular arrow SVG */}
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89M9 9.5a2.5 2.5 0 115 0" />
+              </svg>
+            </button>
+
+            <button
+              className="p-2 rounded-lg text-muted-soft/30 hover:text-muted-soft transition-colors cursor-not-allowed"
+              title="Error info"
+              disabled
+            >
+              {/* Warning exclamation SVG */}
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </button>
+
+            <button
+              className="p-2 rounded-lg text-muted-soft/30 hover:text-muted-soft transition-colors cursor-not-allowed"
+              title="Text view"
+              disabled
+            >
+              {/* Lines list SVG */}
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+
+            <button
+              onClick={restartTest}
+              className="p-2 rounded-lg text-muted-soft hover:text-foreground hover:bg-card/40 transition-colors cursor-pointer"
+              title="Back"
+            >
+              {/* Back double chevron SVG */}
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+              </svg>
+            </button>
+          </div>
+
+          <p className="text-[10px] text-muted-soft/30 select-none">
+            Sign in to save your result
+          </p>
+
         </div>
       )}
 
