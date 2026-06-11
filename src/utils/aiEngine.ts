@@ -83,6 +83,20 @@ export function clearAllSessions() {
   localStorage.removeItem("justtype_sessions");
 }
 
+export interface BigramAnalysis {
+  bigram: string;
+  avgLatency: number;
+  errorRate: number;
+  count: number;
+}
+
+export interface MistakePattern {
+  type: "transposition" | "double_letter" | "repetition" | "substitution" | "unknown";
+  description: string;
+  count: number;
+  examples: string[];
+}
+
 // 1. Identify weak keys
 export function analyzeWeakKeys(sessions: TypingSession[]): WeakKeyAnalysis[] {
   if (sessions.length === 0) return [];
@@ -158,6 +172,96 @@ export function analyzeWeakKeys(sessions: TypingSession[]): WeakKeyAnalysis[] {
 
   // Sort descending by score (weakest keys first)
   return analysis.sort((a, b) => b.score - a.score);
+}
+
+// 1.1 Analyze Bigrams (Letter pairs)
+export function analyzeBigrams(sessions: TypingSession[]): BigramAnalysis[] {
+  if (sessions.length === 0) return [];
+
+  const bigramData: Record<string, {
+    bigram: string;
+    total: number;
+    errors: number;
+    latencies: number[];
+  }> = {};
+
+  sessions.forEach(session => {
+    for (let i = 1; i < session.telemetry.length; i++) {
+      const prev = session.telemetry[i - 1];
+      const curr = session.telemetry[i];
+
+      // Only look at alphanumeric transitions
+      if (prev.key.length !== 1 || curr.key.length !== 1) continue;
+      if (!/[a-zA-Z0-9]/.test(prev.key) || !/[a-zA-Z0-9]/.test(curr.key)) continue;
+
+      const bg = (prev.key + curr.key).toLowerCase();
+      if (!bigramData[bg]) {
+        bigramData[bg] = { bigram: bg, total: 0, errors: 0, latencies: [] };
+      }
+
+      bigramData[bg].total += 1;
+      if (!curr.isCorrect) {
+        bigramData[bg].errors += 1;
+      } else {
+        bigramData[bg].latencies.push(curr.latency);
+      }
+    }
+  });
+
+  const analysis: BigramAnalysis[] = [];
+  Object.values(bigramData).forEach(data => {
+    if (data.total < 3) return;
+    const sumLatency = data.latencies.reduce((a, b) => a + b, 0);
+    analysis.push({
+      bigram: data.bigram,
+      avgLatency: data.latencies.length > 0 ? sumLatency / data.latencies.length : 0,
+      errorRate: data.errors / data.total,
+      count: data.total
+    });
+  });
+
+  // Sort by highest latency first
+  return analysis.sort((a, b) => b.avgLatency - a.avgLatency);
+}
+
+// 1.2 Identify Mistake Patterns
+export function identifyMistakePatterns(sessions: TypingSession[]): MistakePattern[] {
+  const patterns: Record<string, MistakePattern> = {
+    transposition: { type: "transposition", description: "Swapped adjacent letters", count: 0, examples: [] },
+    double_letter: { type: "double_letter", description: "Missing or extra double letters", count: 0, examples: [] },
+    substitution: { type: "substitution", description: "Replaced one letter with another", count: 0, examples: [] },
+  };
+
+  sessions.forEach(session => {
+    session.telemetry.forEach((t, i) => {
+      if (t.isCorrect) return;
+
+      const next = session.telemetry[i + 1];
+      // Check for transposition: typed 'ei' instead of 'ie'
+      if (next && !next.isCorrect && next.typedKey === t.key && t.typedKey === next.key) {
+        patterns.transposition.count++;
+        if (patterns.transposition.examples.length < 3) {
+          patterns.transposition.examples.push(`${t.key}${next.key} → ${t.typedKey}${next.typedKey}`);
+        }
+      } 
+      // Check for double letter issues
+      else if (t.key === session.telemetry[i - 1]?.key && t.typedKey !== t.key) {
+        patterns.double_letter.count++;
+        if (patterns.double_letter.examples.length < 3) {
+          patterns.double_letter.examples.push(`${t.key}${t.key} → ${t.key}${t.typedKey}`);
+        }
+      }
+      // Default to substitution
+      else {
+        patterns.substitution.count++;
+        if (patterns.substitution.examples.length < 3) {
+          patterns.substitution.examples.push(`${t.key} → ${t.typedKey}`);
+        }
+      }
+    });
+  });
+
+  return Object.values(patterns).filter(p => p.count > 0).sort((a, b) => b.count - a.count);
 }
 
 // 2. Calculate Focus Score
