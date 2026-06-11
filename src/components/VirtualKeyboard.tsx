@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-
-export type KeyboardLayoutType = "qwerty" | "dvorak" | "colemak";
+import { KeyboardLayoutType as HookLayoutType } from "@/hooks/useTypingTest";
+export type KeyboardLayoutType = HookLayoutType;
 
 interface VirtualKeyboardProps {
   layout?: KeyboardLayoutType;
@@ -10,6 +10,8 @@ interface VirtualKeyboardProps {
   heatmapMode?: "none" | "errors" | "latency";
   heatmapData?: Record<string, { errorRate?: number; avgLatency?: number; score?: number }>;
   interactive?: boolean;
+  nextChar?: string;
+  isFocusMode?: boolean;
 }
 
 export default function VirtualKeyboard({
@@ -17,6 +19,8 @@ export default function VirtualKeyboard({
   pressedKeys = [],
   heatmapMode = "none",
   heatmapData = {},
+  nextChar = "",
+  isFocusMode = false,
 }: VirtualKeyboardProps) {
   // Define layout structures
   const keyboardRows = useMemo(() => {
@@ -57,22 +61,33 @@ export default function VirtualKeyboard({
     return new Set(pressedKeys.map((k) => k.toLowerCase()));
   }, [pressedKeys]);
 
-  // Calculate key colors for heatmaps
+  // Calculate key colors for heatmaps and focus states
   const getKeyStyle = (key: string) => {
     const normalizedKey = key.toLowerCase();
     
     // Check if key is currently pressed
     const isPressed = activePressedSet.has(normalizedKey) || 
       (normalizedKey === "space" && activePressedSet.has(" "));
-      
+
+    const isNextKey = normalizedKey === nextChar.toLowerCase() || 
+      (normalizedKey === "space" && nextChar === " ");
+
+    if (isFocusMode) {
+      if (isPressed) {
+        return "bg-primary text-white border-primary translate-y-[1px] scale-[0.98] transition-none opacity-100 z-10 shadow-xs";
+      }
+      if (isNextKey) {
+        return "bg-primary/10 border-primary text-primary transition-all duration-150 scale-[1.03] opacity-100 z-10 shadow-xs";
+      }
+      return "bg-transparent border-border-hairline/10 text-muted-soft/15 opacity-20 pointer-events-none transition-all duration-300";
+    }
+
     if (isPressed) {
       return "bg-primary text-white border border-primary border-b-[0.5px] translate-y-[2px] scale-[0.97] shadow-[inset_0_1.5px_3.5px_rgba(0,0,0,0.12)] transition-none";
     }
 
-    const isSpace = normalizedKey === "space";
-
     if (heatmapMode === "none" || !heatmapData[normalizedKey]) {
-      return "bg-[color-mix(in_srgb,var(--card-elevated)_82%,var(--muted)_18%)] border border-[color-mix(in_srgb,var(--border-hairline)_70%,var(--muted)_30%)] border-b-[2.5px] border-b-[color-mix(in_srgb,var(--border-hairline)_40%,var(--muted)_60%)] text-[color-mix(in_srgb,var(--muted)_85%,var(--foreground)_15%)] hover:text-foreground hover:bg-[color-mix(in_srgb,var(--card-elevated)_92%,var(--foreground)_8%)] hover:-translate-y-0.5 hover:border-b-[3px] shadow-[0_1px_1px_rgba(0,0,0,0.01)] transition-all duration-150";
+      return "bg-card border border-border-hairline/80 border-b-[2px] border-b-border-hairline text-muted-soft hover:text-foreground hover:bg-card-elevated hover:-translate-y-0.5 hover:border-b-[2.5px] shadow-[0_1px_1px_rgba(0,0,0,0.01)] transition-all duration-150";
     }
 
     const keyStats = heatmapData[normalizedKey];
@@ -95,21 +110,27 @@ export default function VirtualKeyboard({
       return "bg-[color-mix(in_srgb,var(--card-elevated)_35%,var(--accent-amber)_65%)] border border-[color-mix(in_srgb,var(--border-hairline)_20%,var(--accent-amber)_80%)] border-b-[2.5px] border-b-[color-mix(in_srgb,var(--border-hairline)_10%,var(--accent-amber)_90%)] text-white shadow-xs";
     }
 
-    return "bg-card-elevated border border-border-hairline border-b-[2px] border-b-border/40 text-muted shadow-xs";
+    return "bg-card border border-border-hairline border-b-[2px] border-b-border-hairline text-muted-soft shadow-xs";
   };
 
   const formatKeyLabel = (key: string) => {
-    if (key === "space") return "Spacebar";
+    if (key === "space") return "space";
     return key.toUpperCase();
   };
 
   return (
-    <div className="w-[115%] -mx-[7.5%] bg-[color-mix(in_srgb,var(--card-elevated)_25%,#0a0a09_75%)] border border-white/10 rounded-[32px] p-8 shadow-2xl select-none backdrop-blur-2xl ring-1 ring-white/5">
-      <div className="w-full flex flex-col gap-[12px] [--key-width:46px] sm:[--key-width:62px]">
+    <div 
+      className={`w-[110%] -mx-[5%] rounded-[18px] p-6 select-none transition-all duration-300 ${
+        isFocusMode 
+          ? "bg-transparent border border-transparent" 
+          : "bg-card/30 border border-border-hairline shadow-xs"
+      }`}
+    >
+      <div className="w-full flex flex-col gap-[8px] [--key-width:40px] sm:[--key-width:54px]">
         {keyboardRows.map((row, rowIndex) => (
           <div
             key={rowIndex}
-            className="flex justify-center gap-2.5 w-full"
+            className="flex justify-center gap-1.5 w-full"
             style={{
               paddingLeft: rowIndex === 1 ? "calc(var(--key-width) / 2)" : rowIndex === 2 ? "var(--key-width)" : "0",
             }}
@@ -121,9 +142,9 @@ export default function VirtualKeyboard({
               return (
                 <div
                   key={key}
-                  className={`flex items-center justify-center font-mono text-[11px] sm:text-[14px] font-extrabold border rounded-[12px] transition-all duration-250 ease-out shadow-md ${styleClass}`}
+                  className={`flex items-center justify-center font-mono text-[11px] sm:text-[13px] font-semibold border rounded-[8px] transition-all duration-200 ease-out ${styleClass}`}
                   style={{
-                    width: isSpace ? "calc(var(--key-width) * 6.8)" : "var(--key-width)",
+                    width: isSpace ? "calc(var(--key-width) * 6.5)" : "var(--key-width)",
                     height: "var(--key-width)",
                   }}
                 >
