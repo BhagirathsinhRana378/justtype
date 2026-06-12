@@ -16,14 +16,67 @@ import {
   AlertCircle,
   Zap,
   BarChart2,
-  CheckCircle2
+  CheckCircle2,
+  TrendingUp,
+  HandMetal,
+  Info
 } from "lucide-react";
-import { calculateFocusScore, getSavedSessions } from "@/utils/aiEngine";
+import { calculateFocusScore, getSavedSessions, KeyTelemetry } from "@/utils/aiEngine";
 import dynamic from "next/dynamic";
+import { motion } from "framer-motion";
 
 const ResultsChart = dynamic(() => import("@/components/ResultsChart"), {
   ssr: false,
 });
+
+const FINGER_MAPPING: Record<string, { hand: "left" | "right"; finger: "pinky" | "ring" | "middle" | "index" | "thumb" }> = {
+  q: { hand: "left", finger: "pinky" },
+  a: { hand: "left", finger: "pinky" },
+  z: { hand: "left", finger: "pinky" },
+  '1': { hand: "left", finger: "pinky" },
+  w: { hand: "left", finger: "ring" },
+  s: { hand: "left", finger: "ring" },
+  x: { hand: "left", finger: "ring" },
+  '2': { hand: "left", finger: "ring" },
+  e: { hand: "left", finger: "middle" },
+  d: { hand: "left", finger: "middle" },
+  c: { hand: "left", finger: "middle" },
+  '3': { hand: "left", finger: "middle" },
+  r: { hand: "left", finger: "index" },
+  f: { hand: "left", finger: "index" },
+  v: { hand: "left", finger: "index" },
+  t: { hand: "left", finger: "index" },
+  g: { hand: "left", finger: "index" },
+  b: { hand: "left", finger: "index" },
+  '4': { hand: "left", finger: "index" },
+  '5': { hand: "left", finger: "index" },
+  y: { hand: "right", finger: "index" },
+  u: { hand: "right", finger: "index" },
+  h: { hand: "right", finger: "index" },
+  j: { hand: "right", finger: "index" },
+  n: { hand: "right", finger: "index" },
+  m: { hand: "right", finger: "index" },
+  '6': { hand: "right", finger: "index" },
+  '7': { hand: "right", finger: "index" },
+  i: { hand: "right", finger: "middle" },
+  k: { hand: "right", finger: "middle" },
+  ',': { hand: "right", finger: "middle" },
+  '8': { hand: "right", finger: "middle" },
+  o: { hand: "right", finger: "ring" },
+  l: { hand: "right", finger: "ring" },
+  '.': { hand: "right", finger: "ring" },
+  '9': { hand: "right", finger: "ring" },
+  p: { hand: "right", finger: "pinky" },
+  ';': { hand: "right", finger: "pinky" },
+  '/': { hand: "right", finger: "pinky" },
+  '[': { hand: "right", finger: "pinky" },
+  ']': { hand: "right", finger: "pinky" },
+  "'": { hand: "right", finger: "pinky" },
+  '-': { hand: "right", finger: "pinky" },
+  '=': { hand: "right", finger: "pinky" },
+  '0': { hand: "right", finger: "pinky" },
+  ' ': { hand: "right", finger: "thumb" },
+};
 
 const getAiCoachFeedback = (wpm: number, accuracy: number, focus: number, misspelledCount: number, weakest: string | null) => {
   if (accuracy === 100) {
@@ -95,7 +148,146 @@ export default function TypePage() {
 
   const [pressedKeys, setPressedKeys] = useState<string[]>([]);
   const [heatmapData, setHeatmapData] = useState<Record<string, { errorRate: number; avgLatency: number; score: number }>>({});
-  const [activeTab, setActiveTab] = useState<"insights" | "keys" | "words">("insights");
+
+  // Unique Killer Metrics: Acceleration Profile
+  const accelerationProfile = useMemo(() => {
+    if (status !== "completed" || history.length < 3) {
+      return {
+        title: "Stable Pace",
+        description: "A steady pace. Keep pushing limits to check speed acceleration.",
+        badge: "Cruiser",
+        color: "text-muted-soft border-border-hairline bg-card/25"
+      };
+    }
+    
+    const speeds = history.map(h => h.wpm);
+    const peakWpm = Math.max(...speeds);
+    const peakIndex = speeds.indexOf(peakWpm);
+    const peakTime = history[peakIndex]?.time || 0;
+    
+    const lastThird = Math.floor(speeds.length * 2 / 3);
+    
+    if (peakTime <= 4) {
+      return {
+        title: "Sprint Start",
+        description: `Explosive start peaking at ${peakWpm} WPM in the first ${peakTime}s, then stabilizing.`,
+        badge: "Sprint Start",
+        color: "text-primary border-primary/20 bg-primary/5"
+      };
+    } else if (peakIndex >= lastThird) {
+      return {
+        title: "Strong Finish",
+        description: `Built consistent momentum throughout, peaking at ${peakWpm} WPM in the final seconds.`,
+        badge: "Strong Finish",
+        color: "text-success border-success/20 bg-success/5"
+      };
+    } else {
+      const avgWpm = speeds.reduce((a, b) => a + b, 0) / speeds.length;
+      const variance = speeds.reduce((acc, val) => acc + Math.pow(val - avgWpm, 2), 0) / speeds.length;
+      const stdDev = Math.sqrt(variance);
+      
+      if (stdDev < 4) {
+        return {
+          title: "Steady Pace",
+          description: `Metronome consistency! Maintained speed near ${Math.round(avgWpm)} WPM with very low variance.`,
+          badge: "Steady Pace",
+          color: "text-accent-teal border-accent-teal/20 bg-accent-teal/5"
+        };
+      } else {
+        return {
+          title: "Mid-test Surge",
+          description: `Hit your stride mid-session, peaking at ${peakWpm} WPM before stabilizing.`,
+          badge: "Mid Surge",
+          color: "text-warning border-warning/20 bg-warning/5"
+        };
+      }
+    }
+  }, [history, status]);
+
+  // Unique Killer Metrics: Finger Fatigue / Heatmap Hint
+  const fingerFatigue = useMemo(() => {
+    if (status !== "completed") return null;
+    const telemetry = getTelemetry();
+    if (telemetry.length === 0) return null;
+    
+    const fingerErrors: Record<string, number> = {};
+    const fingerSlowdowns: Record<string, { count: number; totalLatency: number }> = {};
+    let totalErrors = 0;
+    
+    telemetry.forEach(t => {
+      const keyLower = t.key.toLowerCase();
+      const mapping = FINGER_MAPPING[keyLower];
+      if (!mapping) return;
+      
+      const fingerId = `${mapping.hand}_${mapping.finger}`;
+      
+      if (!t.isCorrect) {
+        fingerErrors[fingerId] = (fingerErrors[fingerId] || 0) + 1;
+        totalErrors++;
+      }
+      
+      if (t.isCorrect && t.latency > 250) {
+        if (!fingerSlowdowns[fingerId]) {
+          fingerSlowdowns[fingerId] = { count: 0, totalLatency: 0 };
+        }
+        fingerSlowdowns[fingerId].count++;
+        fingerSlowdowns[fingerId].totalLatency += t.latency;
+      }
+    });
+    
+    let worstFingerForErrors = "";
+    let maxErrors = 0;
+    Object.entries(fingerErrors).forEach(([finger, count]) => {
+      if (count > maxErrors) {
+        maxErrors = count;
+        worstFingerForErrors = finger;
+      }
+    });
+    
+    let worstFingerForSlowdowns = "";
+    let maxAvgSlowdown = 0;
+    Object.entries(fingerSlowdowns).forEach(([finger, data]) => {
+      const avg = data.totalLatency / data.count;
+      if (avg > maxAvgSlowdown) {
+        maxAvgSlowdown = avg;
+        worstFingerForSlowdowns = finger;
+      }
+    });
+    
+    const formatFingerName = (id: string) => {
+      if (!id) return "";
+      const [hand, finger] = id.split("_");
+      return `${hand.charAt(0).toUpperCase() + hand.slice(1)} ${finger.charAt(0).toUpperCase() + finger.slice(1)}`;
+    };
+    
+    if (worstFingerForErrors && totalErrors > 0) {
+      const errorPct = Math.round((maxErrors / totalErrors) * 100);
+      const fingerName = formatFingerName(worstFingerForErrors);
+      return {
+        title: "Finger Fatigue",
+        description: `Your ${fingerName} caused ${errorPct}% of errors. Adjust wrist posture to relax fingers.`,
+        badge: "Fatigue Alert",
+        color: "text-error border-error/20 bg-error/5"
+      };
+    } else if (worstFingerForSlowdowns) {
+      const fingerName = formatFingerName(worstFingerForSlowdowns);
+      return {
+        title: "Rhythm Lag",
+        description: `Your ${fingerName} registered the highest lag (avg ${Math.round(maxAvgSlowdown)}ms latency).`,
+        badge: "Slowdown Alert",
+        color: "text-warning border-warning/20 bg-warning/5"
+      };
+    }
+    
+    return {
+      title: "Balanced Hands",
+      description: "Excellent rhythm! Load was distributed evenly across all fingers.",
+      badge: "Perfect Balance",
+      color: "text-success border-success/20 bg-success/5"
+    };
+  }, [getTelemetry, status]);
+
+
 
   // Compute focus score at the end of the test
   const finalFocusScore = status === "completed" 
@@ -206,6 +398,10 @@ export default function TypePage() {
     
     return { weakKeys, fastestKeys, mistakePatterns, coach };
   }, [getTelemetry, status, wpm, accuracy, finalFocusScore, misspelledWords]);
+
+  const totalPatternCount = useMemo(() => {
+    return sessionAnalytics.mistakePatterns.reduce((sum, p) => sum + p.count, 0) || 1;
+  }, [sessionAnalytics.mistakePatterns]);
 
   // Helper to highlight word differences in typo review
   const getWordDiff = (correct: string, typed: string) => {
@@ -375,7 +571,11 @@ export default function TypePage() {
   }, [getTelemetry, words, typedInput.length, status]);
 
   return (
-    <div className="w-full flex-1 min-h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)] overflow-hidden flex flex-col justify-between items-center bg-background relative select-none px-4 sm:px-6 py-6 md:py-8 z-10">
+    <div className={`w-full flex-1 flex flex-col items-center bg-background relative select-none px-4 sm:px-6 py-6 md:py-8 z-10 ${
+      status === "completed"
+        ? "min-h-[calc(100vh-4rem)] h-auto overflow-y-auto"
+        : "min-h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)] overflow-hidden justify-between"
+    }`}>
       
       {status !== "completed" ? (
         <>
@@ -600,27 +800,33 @@ export default function TypePage() {
         </>
       ) : (
         /* Finished Test Scorecard exactly matching the reference Monkeytype image */
-        <div className="w-full flex-1 flex flex-col items-center justify-center max-w-[960px] py-4 animate-fadeIn font-mono">
+        <motion.div 
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, ease: "easeOut" }}
+          className="w-full flex-1 flex flex-col items-center justify-center max-w-[960px] py-4 font-mono"
+        >
           <div className="w-full flex flex-col md:flex-row items-stretch gap-6 mb-6">
             
             {/* Left Column: WPM and Accuracy stacked vertically */}
-            <div className="flex flex-col justify-center items-start md:w-[180px] gap-6 pl-4 select-none shrink-0 text-left">
+            <div className="flex flex-col justify-center items-start md:w-[185px] gap-6 pl-4 select-none shrink-0 text-left">
               <div>
-                <span className="text-muted-soft text-lg font-mono tracking-wide block mb-0.5">wpm</span>
-                <span className="text-[64px] md:text-[76px] font-bold text-primary leading-none block">{wpm}</span>
+                <span className="text-muted-soft text-xs font-sans tracking-widest uppercase font-bold block mb-0.5">wpm</span>
+                <span className="text-[68px] md:text-[84px] font-black text-primary leading-none block tracking-tighter">{wpm}</span>
               </div>
               <div>
-                <span className="text-muted-soft text-lg font-mono tracking-wide block mb-0.5">acc</span>
-                <span className="text-[64px] md:text-[76px] font-bold text-primary leading-none block">{accuracy}%</span>
+                <span className="text-muted-soft text-xs font-sans tracking-widest uppercase font-bold block mb-0.5">acc</span>
+                <span className="text-[68px] md:text-[84px] font-black text-primary leading-none block tracking-tighter">{accuracy}%</span>
               </div>
             </div>
 
             {/* Right Column: Custom Recharts Score Chart */}
-            <div className="flex-1 min-h-[220px] bg-background/20 border border-border-hairline/20 rounded-xl p-4 flex items-center justify-center">
+            <div className="flex-1 min-h-[320px] bg-background/20 border border-border-hairline/20 rounded-xl p-4 flex items-center justify-center">
               <ResultsChart 
                 history={history} 
                 errorsPerSecond={errorsPerSecond} 
                 elapsedTime={elapsedTime} 
+                telemetry={getTelemetry()}
               />
             </div>
 
@@ -669,221 +875,212 @@ export default function TypePage() {
 
           </div>
 
-          {/* Detailed Analytics Tab Bar */}
-          <div className="w-full mt-8 border border-border-hairline/20 rounded-xl bg-card/10 overflow-hidden select-none">
-            {/* Tabs Headers */}
-            <div className="flex border-b border-border-hairline/10 bg-card/20 text-xs">
-              <button
-                onClick={() => setActiveTab("insights")}
-                className={`flex-1 py-3 px-4 font-mono font-medium flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                  activeTab === "insights"
-                    ? "text-primary bg-background/40 border-b-2 border-primary"
-                    : "text-muted-soft hover:text-foreground hover:bg-card/30"
-                }`}
-              >
-                <Activity className="w-3.5 h-3.5" />
-                <span>Coach & Insights</span>
-              </button>
-              <button
-                onClick={() => setActiveTab("keys")}
-                className={`flex-1 py-3 px-4 font-mono font-medium flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                  activeTab === "keys"
-                    ? "text-primary bg-background/40 border-b-2 border-primary"
-                    : "text-muted-soft hover:text-foreground hover:bg-card/30"
-                }`}
-              >
-                <Target className="w-3.5 h-3.5" />
-                <span>Key Metrics</span>
-              </button>
-              <button
-                onClick={() => setActiveTab("words")}
-                className={`flex-1 py-3 px-4 font-mono font-medium flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                  activeTab === "words"
-                    ? "text-primary bg-background/40 border-b-2 border-primary"
-                    : "text-muted-soft hover:text-foreground hover:bg-card/30"
-                }`}
-              >
-                <BookOpen className="w-3.5 h-3.5" />
-                <span>Typo Review ({misspelledWords.length})</span>
-              </button>
-            </div>
-
-            {/* Tab Contents */}
-            <div className="p-5 min-h-[160px]">
-              
-              {/* Tab 1: Coach & Insights */}
-              {activeTab === "insights" && sessionAnalytics.coach && (
-                <div className="flex flex-col md:flex-row gap-6 items-start md:items-stretch animate-fadeIn text-left">
-                  {/* Left part: coach card */}
-                  <div className="flex-1 flex flex-col justify-between gap-3">
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-primary animate-pulse" />
-                        <span>AI Coach Recommendation</span>
-                      </h4>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${sessionAnalytics.coach.badgeColor}`}>
-                        {sessionAnalytics.coach.badge}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted leading-relaxed font-sans">
-                      {sessionAnalytics.coach.message}
-                    </p>
-                    {misspelledWords.length > 0 && (
-                      <div className="text-[10px] text-muted-soft mt-1 flex items-center gap-1.5 font-sans">
-                        <span className="w-1.5 h-1.5 rounded-full bg-error shrink-0" />
-                        <span>Practice the custom Zen Mode in the home toolbar to auto-generate words targeting your errors!</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Right part: peak speed & metrics */}
-                  <div className="w-full md:w-[260px] border-t md:border-t-0 md:border-l border-border-hairline/10 pt-4 md:pt-0 md:pl-6 flex flex-col gap-3 justify-center">
-                    <div>
-                      <span className="text-[10px] text-muted-soft tracking-wide block">PEAK WPM</span>
-                      <span className="text-2xl font-bold text-primary">
-                        {Math.max(...history.map(h => h.wpm), wpm)}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-muted-soft tracking-wide block">WORDS COMPLETED</span>
-                      <span className="text-base font-semibold text-foreground">
-                        {typedInput.trim().split(/\s+/).filter(Boolean).length} / {words.length}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-muted-soft tracking-wide block">CONSISTENCY</span>
-                      <div className="flex items-center gap-2 mt-1">
-                        <div className="flex-1 h-1.5 bg-card rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-primary transition-all duration-500"
-                            style={{ width: `${finalFocusScore}%` }}
-                          />
-                        </div>
-                        <span className="text-[11px] font-semibold text-foreground">{finalFocusScore}%</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Tab 2: Key Metrics */}
-              {activeTab === "keys" && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left animate-fadeIn">
-                  
-                  {/* Weakest keys */}
-                  <div>
-                    <h5 className="text-[11px] font-semibold text-error/80 tracking-wider mb-2 flex items-center gap-1.5">
-                      <AlertCircle className="w-3.5 h-3.5" />
-                      <span>WEAKEST KEYS</span>
-                    </h5>
-                    {sessionAnalytics.weakKeys.length > 0 ? (
-                      <div className="flex flex-col gap-1.5">
-                        {sessionAnalytics.weakKeys.slice(0, 3).map((item) => (
-                          <div key={item.key} className="flex items-center justify-between text-xs py-1 px-2 rounded bg-card/25 border border-border-hairline/10">
-                            <span className="font-bold uppercase text-foreground bg-card px-1.5 py-0.5 rounded border border-border-hairline">{item.key}</span>
-                            <span className="text-[11px] text-muted-soft">
-                              err: <strong className="text-error">{Math.round(item.errorRate * 100)}%</strong> ({item.errors} err)
-                            </span>
-                            <span className="text-[11px] text-muted-soft font-mono">
-                              {Math.round(item.avgLatency)}ms
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-[11px] text-muted-soft/60 italic font-sans">No weak keys detected this session.</p>
-                    )}
-                  </div>
-
-                  {/* Fastest keys */}
-                  <div>
-                    <h5 className="text-[11px] font-semibold text-success/80 tracking-wider mb-2 flex items-center gap-1.5">
-                      <Zap className="w-3.5 h-3.5 text-success" />
-                      <span>FASTEST KEYS</span>
-                    </h5>
-                    {sessionAnalytics.fastestKeys.length > 0 ? (
-                      <div className="flex flex-col gap-1.5">
-                        {sessionAnalytics.fastestKeys.slice(0, 3).map((item) => (
-                          <div key={item.key} className="flex items-center justify-between text-xs py-1 px-2 rounded bg-card/25 border border-border-hairline/10">
-                            <span className="font-bold uppercase text-foreground bg-card px-1.5 py-0.5 rounded border border-border-hairline">{item.key}</span>
-                            <span className="text-[11px] text-muted-soft">
-                              speed: <strong className="text-success">{Math.round(60000 / item.avgLatency)} cpm</strong>
-                            </span>
-                            <span className="text-[11px] text-muted-soft font-mono">
-                              {Math.round(item.avgLatency)}ms
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-[11px] text-muted-soft/60 italic font-sans">No speed data available.</p>
-                    )}
-                  </div>
-
-                  {/* Mistake patterns */}
-                  <div>
-                    <h5 className="text-[11px] font-semibold text-primary/80 tracking-wider mb-2 flex items-center gap-1.5">
-                      <BarChart2 className="w-3.5 h-3.5" />
-                      <span>MISTAKE PATTERNS</span>
-                    </h5>
-                    {sessionAnalytics.mistakePatterns.length > 0 ? (
-                      <div className="flex flex-col gap-2">
-                        {sessionAnalytics.mistakePatterns.map((p) => (
-                          <div key={p.type} className="text-xs">
-                            <div className="flex justify-between items-center mb-0.5">
-                              <span className="font-medium text-foreground">{p.description}</span>
-                              <span className="text-[10px] bg-primary/10 text-primary font-bold px-1.5 py-0.2 rounded-full">{p.count}x</span>
-                            </div>
-                            {p.examples.length > 0 && (
-                              <p className="text-[10px] text-muted-soft font-mono">
-                                e.g. {p.examples.join(", ")}
-                              </p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-[11px] text-muted-soft/60 italic font-sans">Perfect typing! No mistake patterns detected.</p>
-                    )}
-                  </div>
-
-                </div>
-              )}
-
-              {/* Tab 3: Misspelled Words Review */}
-              {activeTab === "words" && (
-                <div className="animate-fadeIn text-left">
-                  {misspelledWords.length > 0 ? (
-                    <div>
-                      <p className="text-[11px] text-muted-soft mb-3 font-sans">
-                        Here is a detailed review of the words you mistyped. Correct spelling is shown in green, typed key errors are shown with red highlights:
-                      </p>
-                      <div className="flex flex-wrap gap-2.5 max-h-[140px] overflow-y-auto scrollbar-none pr-1">
-                        {misspelledWords.map((item, idx) => (
-                          <div 
-                            key={idx} 
-                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-card/20 border border-border-hairline/15 font-mono text-xs hover:border-border-hairline/30 transition-colors"
-                          >
-                            <span className="text-success font-semibold border-r border-border-hairline/20 pr-2 block">
-                              {item.correct}
-                            </span>
-                            <div className="flex items-center font-semibold">
-                              {getWordDiff(item.correct, item.typed)}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-4 text-center">
-                      <CheckCircle2 className="w-8 h-8 text-success mb-2 animate-bounce" />
-                      <p className="text-xs font-semibold text-foreground">Flawless Session!</p>
-                      <p className="text-[10px] text-muted-soft mt-0.5 font-sans">You typed every single word perfectly without errors.</p>
-                    </div>
+          {/* Coach & Insights Grid Section */}
+          <div className="w-full mt-8 grid grid-cols-1 md:grid-cols-12 gap-6 text-left select-none">
+            {/* Left: AI Coach Recommendation */}
+            <div className="md:col-span-7 flex flex-col justify-between border border-border-hairline/15 rounded-xl bg-card/10 p-5 shadow-sm">
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <h4 className="text-xs font-bold text-foreground flex items-center gap-2 font-sans tracking-wide uppercase">
+                    <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+                    <span>AI Coach Recommendation</span>
+                  </h4>
+                  {sessionAnalytics.coach && (
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${sessionAnalytics.coach.badgeColor}`}>
+                      {sessionAnalytics.coach.badge}
+                    </span>
                   )}
                 </div>
+                <p className="text-xs text-muted leading-relaxed font-sans mt-2">
+                  {sessionAnalytics.coach ? sessionAnalytics.coach.message : "Excellent typing session."}
+                </p>
+              </div>
+              {misspelledWords.length > 0 && (
+                <div className="text-[10px] text-muted-soft mt-4 flex items-center gap-1.5 font-sans border-t border-border-hairline/10 pt-3">
+                  <Info className="w-3.5 h-3.5 text-primary shrink-0" />
+                  <span>Practice the custom Zen Mode in the home toolbar to auto-generate words targeting your errors!</span>
+                </div>
               )}
+            </div>
 
+            {/* Right: Acceleration Profile & Finger Fatigue */}
+            <div className="md:col-span-5 flex flex-col gap-4">
+              {/* Acceleration Profile */}
+              <div className="border border-border-hairline/15 rounded-xl bg-card/10 p-4 shadow-sm flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-muted-soft font-sans font-bold tracking-wider uppercase flex items-center gap-1.5">
+                    <TrendingUp className="w-3.5 h-3.5 text-primary" />
+                    <span>Acceleration Profile</span>
+                  </span>
+                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded font-mono border ${accelerationProfile.color}`}>
+                    {accelerationProfile.badge}
+                  </span>
+                </div>
+                <h5 className="text-xs font-bold text-foreground mt-0.5 font-sans">{accelerationProfile.title}</h5>
+                <p className="text-[11px] text-muted leading-relaxed font-sans">{accelerationProfile.description}</p>
+              </div>
+
+              {/* Finger Fatigue Hint */}
+              {fingerFatigue && (
+                <div className="border border-border-hairline/15 rounded-xl bg-card/10 p-4 shadow-sm flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-muted-soft font-sans font-bold tracking-wider uppercase flex items-center gap-1.5">
+                      <HandMetal className="w-3.5 h-3.5 text-primary" />
+                      <span>Finger Telemetry</span>
+                    </span>
+                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded font-mono border ${fingerFatigue.color}`}>
+                      {fingerFatigue.badge}
+                    </span>
+                  </div>
+                  <h5 className="text-xs font-bold text-foreground mt-0.5 font-sans">{fingerFatigue.title}</h5>
+                  <p className="text-[11px] text-muted leading-relaxed font-sans">{fingerFatigue.description}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Telemetry Cards Grid */}
+          <div className="w-full mt-6 grid grid-cols-1 md:grid-cols-3 gap-6 text-left select-none">
+            
+            {/* Card 1: Weakest Keys */}
+            <div className="border border-border-hairline/15 rounded-xl bg-card/10 p-5 shadow-sm flex flex-col">
+              <h5 className="text-[11px] font-bold text-error/85 tracking-widest font-sans uppercase mb-4 flex items-center gap-2 pb-2 border-b border-border-hairline/10">
+                <AlertCircle className="w-3.5 h-3.5 text-error animate-pulse" />
+                <span>WEAKEST KEYS</span>
+              </h5>
+              
+              {sessionAnalytics.weakKeys.length > 0 ? (
+                <div className="flex flex-col gap-3.5">
+                  {sessionAnalytics.weakKeys.slice(0, 3).map((item) => (
+                    <div key={item.key} className="flex items-center justify-between py-1 px-1">
+                      {/* Visual keycap */}
+                      <div className="flex items-center justify-center w-7 h-7 font-sans text-xs font-black text-foreground bg-gradient-to-b from-card-elevated to-card border border-border-hairline/80 rounded-md shadow-[0_2.5px_0_rgba(255,255,255,0.05),0_3.5px_0_rgba(0,0,0,0.25)] select-none shrink-0">
+                        {item.key.toUpperCase()}
+                      </div>
+                      {/* Impact Bar */}
+                      <div className="flex-1 ml-3.5 flex flex-col gap-0.5 text-[11px]">
+                        <div className="flex justify-between items-center text-[10px] text-muted-soft">
+                          <span>Slowdown Impact</span>
+                          <span className="font-mono text-error font-semibold">{item.score}%</span>
+                        </div>
+                        <div className="w-full h-1 bg-card/40 rounded-full overflow-hidden border border-border-hairline/10 mt-1">
+                          <div 
+                            className="h-full bg-gradient-to-r from-warning to-error transition-all duration-500"
+                            style={{ width: `${Math.min(100, Math.max(10, item.score))}%` }}
+                          />
+                        </div>
+                        <div className="flex justify-between items-center text-[9px] text-muted-soft/60 font-mono mt-1 leading-none">
+                          <span>{item.errors} error{item.errors !== 1 ? 's' : ''}</span>
+                          <span>{Math.round(item.avgLatency)}ms latency</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[11px] text-muted-soft/60 italic font-sans py-4">No weak keys detected this session.</p>
+              )}
+            </div>
+
+            {/* Card 2: Mistake Patterns */}
+            <div className="border border-border-hairline/15 rounded-xl bg-card/10 p-5 shadow-sm flex flex-col">
+              <h5 className="text-[11px] font-bold text-primary/85 tracking-widest font-sans uppercase mb-4 flex items-center gap-2 pb-2 border-b border-border-hairline/10">
+                <BarChart2 className="w-3.5 h-3.5 text-primary" />
+                <span>MISTAKE PATTERNS</span>
+              </h5>
+              
+              {sessionAnalytics.mistakePatterns.length > 0 ? (
+                <div className="flex flex-col gap-3">
+                  {sessionAnalytics.mistakePatterns.map((p) => {
+                    const frequency = Math.round((p.count / totalPatternCount) * 100);
+                    let severityLabel = "Low";
+                    let severityTagClass = "text-muted-soft bg-card/45 border border-border-hairline/30";
+                    let barColorClass = "bg-muted-soft";
+                    
+                    if (p.type === "substitution") {
+                      severityLabel = "High";
+                      severityTagClass = "text-error bg-error/10 border border-error/20";
+                      barColorClass = "bg-error";
+                    } else if (p.type === "transposition") {
+                      severityLabel = "Medium";
+                      severityTagClass = "text-warning bg-warning/10 border border-warning/20";
+                      barColorClass = "bg-warning";
+                    }
+                    
+                    return (
+                      <div key={p.type} className="flex flex-col gap-1 text-[11px] p-2.5 rounded-lg bg-card/20 border border-border-hairline/10">
+                        <div className="flex justify-between items-center mb-0.5">
+                          <span className="font-semibold text-foreground">{p.description}</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`text-[8px] font-black tracking-wider uppercase px-1.5 py-0.2 rounded leading-none ${severityTagClass}`}>
+                              {severityLabel}
+                            </span>
+                            <span className="text-[10px] bg-primary/10 text-primary font-bold px-1.5 py-0.2 rounded-full font-mono leading-none">
+                              {p.count}x
+                            </span>
+                          </div>
+                        </div>
+                        
+                        {/* Progress bar */}
+                        <div className="w-full h-1 bg-card/50 rounded-full overflow-hidden mt-1">
+                          <div 
+                            className={`h-full ${barColorClass} transition-all duration-500`}
+                            style={{ width: `${frequency}%` }}
+                          />
+                        </div>
+                        
+                        <div className="flex justify-between items-center text-[9px] text-muted-soft/60 mt-1 leading-none">
+                          <span>Frequency: {frequency}%</span>
+                          {p.examples.length > 0 && (
+                            <span className="font-mono text-right italic truncate max-w-[120px]">
+                              e.g. {p.examples.join(", ")}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-6 text-center">
+                  <CheckCircle2 className="w-6 h-6 text-success mb-2" />
+                  <p className="text-[11px] text-muted-soft/60 italic font-sans">Perfect typing! No mistake patterns detected.</p>
+                </div>
+              )}
+            </div>
+
+            {/* Card 3: Typo Review */}
+            <div className="border border-border-hairline/15 rounded-xl bg-card/10 p-5 shadow-sm flex flex-col">
+              <h5 className="text-[11px] font-bold text-success/85 tracking-widest font-sans uppercase mb-4 flex items-center gap-2 pb-2 border-b border-border-hairline/10">
+                <BookOpen className="w-3.5 h-3.5 text-success" />
+                <span>TYPO REVIEW ({misspelledWords.length})</span>
+              </h5>
+              
+              {misspelledWords.length > 0 ? (
+                <div className="flex flex-col flex-1 justify-between gap-3">
+                  <div className="flex flex-wrap gap-2 max-h-[160px] overflow-y-auto scrollbar-none pr-1">
+                    {misspelledWords.map((item, idx) => (
+                      <div 
+                        key={idx} 
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-card/25 border border-border-hairline/10 font-mono text-[11px] hover:border-border-hairline/20 transition-colors"
+                      >
+                        <span className="text-success font-semibold border-r border-border-hairline/20 pr-2 block">
+                          {item.correct}
+                        </span>
+                        <div className="flex items-center font-semibold">
+                          {getWordDiff(item.correct, item.typed)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-6 text-center flex-1">
+                  <CheckCircle2 className="w-8 h-8 text-success mb-2 animate-bounce" />
+                  <p className="text-xs font-bold text-foreground">Flawless Session!</p>
+                  <p className="text-[10px] text-muted-soft/60 mt-0.5 font-sans">No typos were made.</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -949,7 +1146,7 @@ export default function TypePage() {
             Sign in to save your result
           </p>
 
-        </div>
+        </motion.div>
       )}
 
     </div>
