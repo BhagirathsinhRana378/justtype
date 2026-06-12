@@ -20,9 +20,16 @@ interface ResultsChartProps {
   telemetry?: KeyTelemetry[];
 }
 
+interface CustomErrorDotProps {
+  cx?: number;
+  cy?: number;
+  value?: number;
+}
+
 // Custom error marker for the Right Y-Axis (small red 'x' marks matching Monkeytype)
-const CustomErrorDot = (props: any) => {
+const CustomErrorDot = (props: CustomErrorDotProps) => {
   const { cx, cy, value } = props;
+  if (cx === undefined || cy === undefined) return null;
   if (value && value > 0) {
     return (
       <g className="animate-fadeIn">
@@ -39,8 +46,21 @@ const CustomErrorDot = (props: any) => {
   return null;
 };
 
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    payload: {
+      time: number;
+      wpm: number;
+      rawWpm: number;
+      errors: number;
+      exactMs: number;
+    };
+  }>;
+}
+
 // Polished Tooltip Component
-const CustomTooltip = ({ active, payload }: any) => {
+const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     const timeFormatted = `${data.time}s`;
@@ -94,7 +114,9 @@ export default function ResultsChart({
   const [resizeKey, setResizeKey] = useState(0);
 
   useEffect(() => {
-    setIsMounted(true);
+    Promise.resolve().then(() => {
+      setIsMounted(true);
+    });
     
     const handleResize = () => {
       setResizeKey((prev) => prev + 1);
@@ -228,7 +250,7 @@ export default function ResultsChart({
         </defs>
       </svg>
 
-      <ResponsiveContainer key={resizeKey} width="100%" height={300}>
+      <ResponsiveContainer key={resizeKey} width="100%" height={300} minWidth={0}>
         <AreaChart
           data={chartData}
           margin={{ top: 20, right: 15, left: -25, bottom: 5 }}

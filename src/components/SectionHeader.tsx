@@ -1,9 +1,10 @@
 "use client";
 
-import { ComponentType, ReactNode } from "react";
+import { ReactNode } from "react";
+import { LucideIcon } from "lucide-react";
 
 interface SectionHeaderProps {
-  icon?: ComponentType<any>;
+  icon?: LucideIcon;
   title: string;
   subtitle: string;
   actions?: ReactNode;

@@ -21,10 +21,16 @@ export interface SessionStats {
 export function useSessions() {
   const [sessions, setSessions] = useState<TypingSession[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [now, setNow] = useState<number>(0);
 
   useEffect(() => {
-    setSessions(getSavedSessions());
-    setLoaded(true);
+    const saved = getSavedSessions();
+    const currentNow = Date.now();
+    Promise.resolve().then(() => {
+      setSessions(saved);
+      setLoaded(true);
+      setNow(currentNow);
+    });
   }, []);
 
   const clear = () => {
@@ -33,7 +39,7 @@ export function useSessions() {
   };
 
   const stats = useMemo<SessionStats>(() => {
-    if (sessions.length === 0) {
+    if (sessions.length === 0 || now === 0) {
       return {
         totalTests: 0,
         avgWpm: 0,
@@ -58,7 +64,7 @@ export function useSessions() {
       new Set(sessions.map(s => dayIndex(s.timestamp)))
     ).sort((a, b) => a - b);
     
-    const today = dayIndex(Date.now());
+    const today = dayIndex(now);
     
     let bestStreak = 0;
     let currentRun = 0;
@@ -98,7 +104,7 @@ export function useSessions() {
       currentStreak,
       bestStreak,
     };
-  }, [sessions]);
+  }, [sessions, now]);
 
   return {
     sessions,

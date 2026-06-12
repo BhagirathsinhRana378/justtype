@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { playKeySound, SoundType } from "@/utils/audio";
+import { SoundType } from "@/utils/audio";
 import { saveSession, TypingSession, KeyTelemetry, generateAdaptiveWords, getSavedSessions, analyzeWeakKeys } from "@/utils/aiEngine";
 
 const DEFAULT_WORDS = [
@@ -70,11 +70,13 @@ export function useTypingTest() {
       const savedCaret = localStorage.getItem("justtype_config_caret") as CaretType;
       const savedLayout = localStorage.getItem("justtype_config_layout") as KeyboardLayoutType;
 
-      if (savedMode) setMode(savedMode);
-      if (savedLimit) setLimit(parseInt(savedLimit));
-      if (savedSound) setSoundType(savedSound);
-      if (savedCaret) setCaretType(savedCaret);
-      if (savedLayout) setLayout(savedLayout);
+      Promise.resolve().then(() => {
+        if (savedMode) setMode(savedMode);
+        if (savedLimit) setLimit(parseInt(savedLimit));
+        if (savedSound) setSoundType(savedSound);
+        if (savedCaret) setCaretType(savedCaret);
+        if (savedLayout) setLayout(savedLayout);
+      });
     }
   }, []);
 
@@ -168,7 +170,9 @@ export function useTypingTest() {
 
   // Load initial words
   useEffect(() => {
-    restartTest();
+    Promise.resolve().then(() => {
+      restartTest();
+    });
   }, [mode, limit, restartTest]);
 
   // Clean interval on unmount
@@ -306,7 +310,7 @@ export function useTypingTest() {
 
       return nextInput;
     });
-  }, [status, words, mode, limit, soundType, completeTest, typedInput]);
+  }, [status, words, mode, limit, completeTest]);
 
   // Periodic calculator for live graph history (every second)
   useEffect(() => {
@@ -318,9 +322,12 @@ export function useTypingTest() {
     }
     const currentWpm = Math.round((correctCount / 5) / (elapsedTime / 60 || 0.01));
     const currentAccuracy = typedInput.length > 0 ? Math.round((correctCount / typedInput.length) * 100) : 100;
-    setWpm(currentWpm);
-    setAccuracy(currentAccuracy);
-    setHistory((prev) => [...prev, { time: elapsedTime, wpm: currentWpm, accuracy: currentAccuracy }]);
+    
+    Promise.resolve().then(() => {
+      setWpm(currentWpm);
+      setAccuracy(currentAccuracy);
+      setHistory((prev) => [...prev, { time: elapsedTime, wpm: currentWpm, accuracy: currentAccuracy }]);
+    });
   }, [elapsedTime, typedInput, words, status]);
 
   return {

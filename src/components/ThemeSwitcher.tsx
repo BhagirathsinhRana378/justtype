@@ -19,7 +19,9 @@ export default function ThemeSwitcher() {
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("justtype_config_theme") || "cream";
-    setCurrentTheme(savedTheme);
+    Promise.resolve().then(() => {
+      setCurrentTheme(savedTheme);
+    });
     document.documentElement.setAttribute("data-theme", savedTheme);
   }, []);
 

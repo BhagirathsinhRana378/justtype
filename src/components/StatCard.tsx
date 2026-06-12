@@ -1,13 +1,13 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { ComponentType } from "react";
+import { LucideIcon } from "lucide-react";
 
 interface StatCardProps {
   label: string;
   value: string | number;
   sub: string;
-  icon: ComponentType<any>;
+  icon: LucideIcon;
   iconClassName?: string;
   className?: string;
 }
