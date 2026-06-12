@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { ComponentType } from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, LucideIcon } from "lucide-react";
 
 interface EmptyStateProps {
-  icon: ComponentType<any>;
+  icon: LucideIcon;
   title: string;
   description: string;
   ctaLabel: string;

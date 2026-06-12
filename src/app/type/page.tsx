@@ -10,18 +10,15 @@ import {
   Quote, 
   Sparkles, 
   Keyboard,
-  Activity,
-  Target,
   BookOpen,
   AlertCircle,
-  Zap,
   BarChart2,
   CheckCircle2,
   TrendingUp,
   HandMetal,
   Info
 } from "lucide-react";
-import { calculateFocusScore, getSavedSessions, KeyTelemetry } from "@/utils/aiEngine";
+import { calculateFocusScore, getSavedSessions } from "@/utils/aiEngine";
 import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 

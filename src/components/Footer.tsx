@@ -9,7 +9,9 @@ export default function Footer() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    Promise.resolve().then(() => {
+      setMounted(true);
+    });
   }, []);
 
   // Hide footer on typing page to keep it single-screen (100vh)

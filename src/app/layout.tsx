@@ -3,7 +3,6 @@ import { Geist, Geist_Mono, Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
 import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
-import Link from "next/link";
 import Script from "next/script";
 
 const geistSans = Geist({
@@ -24,6 +23,7 @@ const cormorantGaramond = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://justtype.io"),
   title: "Typing Test | JustType - Free Online Typing Speed Test & AI Coach",
   description: "Take a free online typing test to measure your WPM speed and accuracy. JustType is the best typing website featuring an AI typing coach, real-time analytics, and personalized typing practice to help you improve typing speed and keyboard skills.",
   keywords: [

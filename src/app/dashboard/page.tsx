@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import {
@@ -77,6 +77,13 @@ export default function DashboardPage() {
   const [range, setRange] = useState<RangeKey>("30");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const reduceMotion = useReducedMotion();
+  const [now, setNow] = useState<number>(0);
+
+  useEffect(() => {
+    Promise.resolve().then(() => {
+      setNow(Date.now());
+    });
+  }, []);
 
   const weakKeys = useMemo(() => analyzeWeakKeys(sessions), [sessions]);
   const growthPrediction = useMemo(() => predictGrowthTrend(sessions), [sessions]);
@@ -184,19 +191,20 @@ export default function DashboardPage() {
 
   // Insight: last-30-day activity dots
   const calendarDots = useMemo(() => {
+    if (!now) return [];
     const tested = new Set(sessions.map((s) => dayIndex(s.timestamp)));
-    const today = dayIndex(Date.now());
+    const today = dayIndex(now);
     const dots: { day: number; active: boolean }[] = [];
     for (let offset = 29; offset >= 0; offset--) {
       const day = today - offset;
       dots.push({ day, active: tested.has(day) });
     }
     return dots;
-  }, [sessions]);
+  }, [sessions, now]);
 
   // Insight: avg WPM this week vs previous week
   const weekDelta = useMemo(() => {
-    const now = Date.now();
+    if (!now) return null;
     const week = 7 * DAY_MS;
     const cur = sessions.filter((s) => now - s.timestamp < week);
     const prev = sessions.filter((s) => now - s.timestamp >= week && now - s.timestamp < 2 * week);
@@ -205,7 +213,7 @@ export default function DashboardPage() {
     const curAvg = Math.round(avg(cur));
     if (prev.length === 0) return { curAvg, delta: null as number | null };
     return { curAvg, delta: curAvg - Math.round(avg(prev)) };
-  }, [sessions]);
+  }, [sessions, now]);
 
   const containerVariants = {
     hidden: {},
@@ -386,7 +394,7 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <div className="w-full h-[260px]">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                     <ComposedChart data={chartData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
                       <defs>
                         <linearGradient id="wpmFill" x1="0" y1="0" x2="0" y2="1">
