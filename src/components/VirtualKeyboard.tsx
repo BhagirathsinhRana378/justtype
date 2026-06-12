@@ -12,6 +12,7 @@ interface VirtualKeyboardProps {
   interactive?: boolean;
   nextChar?: string;
   isFocusMode?: boolean;
+  heatmapStyle?: string;
 }
 
 export default function VirtualKeyboard({

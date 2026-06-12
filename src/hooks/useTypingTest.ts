@@ -228,13 +228,15 @@ export function useTypingTest() {
     const targetText = words.join(" ");
     const now = Date.now();
     
-    // Feedback Trigger
+    // Keystroke sound trigger disabled to silence click sound
+    /*
     if (char === "Backspace") {
       playKeySound(soundType, char, true);
     } else if (char.length === 1) {
       const targetChar = targetText[typedInput.length] || "";
       playKeySound(soundType, char, char === targetChar);
     }
+    */
 
     // Initial state trigger
     if (status === "idle") {
