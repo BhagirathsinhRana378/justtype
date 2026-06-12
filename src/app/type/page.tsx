@@ -4,151 +4,71 @@ import { useState, useEffect, useMemo } from "react";
 import { useTypingTest, KeyboardLayoutType, CaretType } from "@/hooks/useTypingTest";
 import TypingTestArea from "@/components/TypingTestArea";
 import VirtualKeyboard from "@/components/VirtualKeyboard";
-import { Clock, FileText, Quote, Sparkles, Keyboard } from "lucide-react";
+import { 
+  Clock, 
+  FileText, 
+  Quote, 
+  Sparkles, 
+  Keyboard,
+  Activity,
+  Target,
+  BookOpen,
+  AlertCircle,
+  Zap,
+  BarChart2,
+  CheckCircle2
+} from "lucide-react";
 import { calculateFocusScore, getSavedSessions } from "@/utils/aiEngine";
+import dynamic from "next/dynamic";
 
-// SVG Line Chart Component for score display
-interface ChartProps {
-  history: { time: number; wpm: number; accuracy: number }[];
-  errorsPerSecond: Record<number, number>;
-  elapsedTime: number;
-}
+const ResultsChart = dynamic(() => import("@/components/ResultsChart"), {
+  ssr: false,
+});
 
-const getSvgCoords = (
-  time: number,
-  wpmValue: number,
-  maxWpm: number,
-  elapsedTime: number,
-  svgWidth: number,
-  svgHeight: number,
-  paddingX: number,
-  paddingY: number
-) => {
-  const x = paddingX + ((time - 1) / Math.max(1, elapsedTime - 1)) * (svgWidth - 2 * paddingX);
-  const y = svgHeight - paddingY - (wpmValue / maxWpm) * (svgHeight - 2 * paddingY);
-  return { x, y };
+const getAiCoachFeedback = (wpm: number, accuracy: number, focus: number, misspelledCount: number, weakest: string | null) => {
+  if (accuracy === 100) {
+    return {
+      title: "Perfect Accuracy!",
+      message: `Outstanding performance! You completed the test at ${wpm} WPM with flawless 100% accuracy. Your pace consistency (Focus: ${focus}%) was exceptional. Keep typing with this superb precision!`,
+      badge: "Flawless Master",
+      badgeColor: "text-success bg-success/10 border-success/20 border"
+    };
+  }
+  
+  if (accuracy < 85) {
+    return {
+      title: "Control Over Speed",
+      message: `You reached a speed of ${wpm} WPM, but accuracy fell to ${accuracy}%. Try slowing down by 10-15% to reinforce correct muscle memory. Accuracy is the foundation of high-speed typing!`,
+      badge: "Focus on Control",
+      badgeColor: "text-error bg-error/10 border-error/20 border"
+    };
+  }
+  
+  if (focus < 70) {
+    return {
+      title: "Smoothing Out Your Rhythm",
+      message: `Your typing speed is solid at ${wpm} WPM, but your cadence is a bit uneven (Focus: ${focus}%). Try typing to a steady internal beat, letting your fingers move in a smooth flow without abrupt pauses.`,
+      badge: "Pacing Alert",
+      badgeColor: "text-warning bg-warning/10 border-warning/20 border"
+    };
+  }
+  
+  let msg = `Excellent work! You achieved ${wpm} WPM with a strong accuracy of ${accuracy}% and a focus index of ${focus}%.`;
+  if (weakest) {
+    msg += ` You experienced a slight slowdown or error-prone moments on the '${weakest.toUpperCase()}' key. Practice some adaptive words containing '${weakest}' to build confidence.`;
+  } else {
+    msg += ` Your rhythm was solid and keystrokes were precise. You are building excellent typing habits.`;
+  }
+  
+  return {
+    title: "Solid Session!",
+    message: msg,
+    badge: wpm > 85 ? "Elite Typist" : wpm > 55 ? "Steady Pace" : "Rising Star",
+    badgeColor: "text-primary bg-primary/10 border-primary/20 border"
+  };
 };
 
-const ScoreChart: React.FC<ChartProps> = ({ history, errorsPerSecond, elapsedTime }) => {
-  const points = useMemo(() => {
-    if (!history || history.length === 0) return [];
-    
-    return history.map(h => {
-      // Calculate raw WPM mathematically: raw = wpm / accuracy
-      const rawWpm = h.accuracy > 0 ? Math.round((h.wpm * 100) / h.accuracy) : h.wpm;
-      return {
-        time: h.time,
-        wpm: h.wpm,
-        rawWpm: Math.min(250, rawWpm), // cap to avoid crazy spikes
-        errors: errorsPerSecond[h.time] || 0
-      };
-    });
-  }, [history, errorsPerSecond]);
-
-  const maxWpm = useMemo(() => {
-    if (points.length === 0) return 80;
-    const maxVal = Math.max(...points.map(p => Math.max(p.wpm, p.rawWpm)));
-    return Math.max(80, Math.ceil((maxVal + 10) / 20) * 20); // round up to nearest 20
-  }, [points]);
-
-  const svgWidth = 700;
-  const svgHeight = 200;
-  const paddingX = 40;
-  const paddingY = 20;
-
-  const wpmPath = useMemo(() => {
-    if (points.length === 0) return "";
-    return points.map((p, idx) => {
-      const { x, y } = getSvgCoords(p.time, p.wpm, maxWpm, elapsedTime, svgWidth, svgHeight, paddingX, paddingY);
-      return `${idx === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`;
-    }).join(" ");
-  }, [points, maxWpm, elapsedTime]);
-
-  const rawWpmPath = useMemo(() => {
-    if (points.length === 0) return "";
-    return points.map((p, idx) => {
-      const { x, y } = getSvgCoords(p.time, p.rawWpm, maxWpm, elapsedTime, svgWidth, svgHeight, paddingX, paddingY);
-      return `${idx === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`;
-    }).join(" ");
-  }, [points, maxWpm, elapsedTime]);
-
-  return (
-    <div className="w-full h-[200px] relative font-mono text-[9px] text-muted-soft/40 select-none">
-      {/* Y-Axis Labels */}
-      <div className="absolute left-0 top-0 bottom-0 w-8 flex flex-col justify-between items-end pr-2 text-[8px] pointer-events-none py-[16px]">
-        <span>{maxWpm}</span>
-        <span>{Math.round(maxWpm * 0.75)}</span>
-        <span>{Math.round(maxWpm * 0.5)}</span>
-        <span>{Math.round(maxWpm * 0.25)}</span>
-        <span>0</span>
-      </div>
-
-      {/* SVG Container */}
-      <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="w-full h-full overflow-visible">
-        {/* Horizontal Dotted Gridlines */}
-        {[0.25, 0.5, 0.75, 1.0].map((ratio, idx) => {
-          const y = paddingY + (1 - ratio) * (svgHeight - 2 * paddingY);
-          return (
-            <line
-              key={idx}
-              x1={paddingX}
-              y1={y}
-              x2={svgWidth - paddingX}
-              y2={y}
-              stroke="var(--border-hairline)"
-              strokeOpacity="0.15"
-              strokeDasharray="3 3"
-            />
-          );
-        })}
-
-        {points.length > 1 && (
-          <>
-            {/* Raw WPM path (dashed gray) */}
-            <path
-              d={rawWpmPath}
-              fill="none"
-              stroke="var(--muted-soft)"
-              strokeOpacity="0.25"
-              strokeWidth="1.5"
-              strokeDasharray="3 3"
-            />
-            {/* WPM path (solid yellow/primary) */}
-            <path
-              d={wpmPath}
-              fill="none"
-              stroke="var(--primary)"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </>
-        )}
-
-        {/* Error markers (red 'x') */}
-        {points.map((p) => {
-          if (p.errors > 0) {
-            const { x, y } = getSvgCoords(p.time, p.rawWpm, maxWpm, elapsedTime, svgWidth, svgHeight, paddingX, paddingY);
-            return (
-              <g key={p.time} className="text-error">
-                <line x1={x - 2.5} y1={y - 2.5} x2={x + 2.5} y2={y + 2.5} stroke="currentColor" strokeWidth="1.5" />
-                <line x1={x - 2.5} y1={y + 2.5} x2={x + 2.5} y2={y - 2.5} stroke="currentColor" strokeWidth="1.5" />
-              </g>
-            );
-          }
-          return null;
-        })}
-      </svg>
-
-      {/* X-Axis labels */}
-      <div className="absolute left-[40px] right-[40px] bottom-0 flex justify-between text-[8px] pointer-events-none">
-        <span>1s</span>
-        <span>{Math.round(elapsedTime / 2)}s</span>
-        <span>{elapsedTime}s</span>
-      </div>
-    </div>
-  );
-};
+// ScoreChart placeholder removed since we use dynamic ResultsChart component
 
 export default function TypePage() {
   const {
@@ -175,6 +95,7 @@ export default function TypePage() {
 
   const [pressedKeys, setPressedKeys] = useState<string[]>([]);
   const [heatmapData, setHeatmapData] = useState<Record<string, { errorRate: number; avgLatency: number; score: number }>>({});
+  const [activeTab, setActiveTab] = useState<"insights" | "keys" | "words">("insights");
 
   // Compute focus score at the end of the test
   const finalFocusScore = status === "completed" 
@@ -188,6 +109,137 @@ export default function TypePage() {
         telemetry: getTelemetry()
       })
     : 100;
+
+  // Reconstruct misspelled words for the current session
+  const misspelledWords = useMemo(() => {
+    if (status !== "completed") return [];
+    const targetWords = words;
+    const typedWords = typedInput.trim().split(/\s+/);
+    
+    const list = [];
+    for (let i = 0; i < Math.min(targetWords.length, typedWords.length); i++) {
+      if (targetWords[i] !== typedWords[i]) {
+        list.push({
+          index: i,
+          correct: targetWords[i],
+          typed: typedWords[i] || ""
+        });
+      }
+    }
+    return list;
+  }, [words, typedInput, status]);
+
+  // Analyze current session telemetry
+  const sessionAnalytics = useMemo(() => {
+    if (status !== "completed") return { weakKeys: [], fastestKeys: [], mistakePatterns: [], coach: null };
+    
+    const telemetry = getTelemetry();
+    const keyStats: Record<string, { key: string; total: number; errors: number; latencies: number[] }> = {};
+    
+    telemetry.forEach(t => {
+      if (t.key.length !== 1) return;
+      const k = t.key.toLowerCase();
+      if (!keyStats[k]) {
+        keyStats[k] = { key: k, total: 0, errors: 0, latencies: [] };
+      }
+      keyStats[k].total++;
+      if (!t.isCorrect) {
+        keyStats[k].errors++;
+      } else {
+        keyStats[k].latencies.push(t.latency);
+      }
+    });
+    
+    // 1. Weak keys
+    const weakKeys = Object.values(keyStats)
+      .map(data => {
+        const errorRate = data.total > 0 ? data.errors / data.total : 0;
+        const avgLatency = data.latencies.length > 0 ? data.latencies.reduce((a, b) => a + b, 0) / data.latencies.length : 0;
+        const score = Math.round(errorRate * 70 + Math.min(30, (avgLatency / 400) * 30));
+        return { key: data.key, errorRate, avgLatency, score, total: data.total, errors: data.errors };
+      })
+      .filter(item => item.total >= 1)
+      .sort((a, b) => b.score - a.score);
+      
+    // 2. Fastest keys
+    const fastestKeys = Object.values(keyStats)
+      .map(data => {
+        const avgLatency = data.latencies.length > 0 ? data.latencies.reduce((a, b) => a + b, 0) / data.latencies.length : 9999;
+        return { key: data.key, avgLatency, total: data.total };
+      })
+      .filter(item => item.total >= 1 && item.avgLatency < 9999)
+      .sort((a, b) => a.avgLatency - b.avgLatency);
+      
+    // 3. Mistake patterns
+    const patterns = {
+      transposition: { type: "transposition", description: "Swapped adjacent letters", count: 0, examples: [] as string[] },
+      double_letter: { type: "double_letter", description: "Double letter mistakes", count: 0, examples: [] as string[] },
+      substitution: { type: "substitution", description: "Substitution errors", count: 0, examples: [] as string[] },
+    };
+    
+    telemetry.forEach((t, i) => {
+      if (t.isCorrect) return;
+      const next = telemetry[i + 1];
+      if (next && !next.isCorrect && next.typedKey === t.key && t.typedKey === next.key) {
+        patterns.transposition.count++;
+        if (patterns.transposition.examples.length < 2) {
+          patterns.transposition.examples.push(`'${t.key}${next.key}' typed '${t.typedKey}${next.typedKey}'`);
+        }
+      } else if (t.key === telemetry[i - 1]?.key && t.typedKey !== t.key) {
+        patterns.double_letter.count++;
+        if (patterns.double_letter.examples.length < 2) {
+          patterns.double_letter.examples.push(`'${t.key}${t.key}' typed '${t.key}${t.typedKey}'`);
+        }
+      } else {
+        patterns.substitution.count++;
+        if (patterns.substitution.examples.length < 2) {
+          patterns.substitution.examples.push(`'${t.key}' typed '${t.typedKey}'`);
+        }
+      }
+    });
+    
+    const mistakePatterns = Object.values(patterns).filter(p => p.count > 0).sort((a, b) => b.count - a.count);
+
+    // 4. Coach Comments
+    const weakest = weakKeys.length > 0 ? weakKeys[0].key : null;
+    const coach = getAiCoachFeedback(wpm, accuracy, finalFocusScore, misspelledWords.length, weakest);
+    
+    return { weakKeys, fastestKeys, mistakePatterns, coach };
+  }, [getTelemetry, status, wpm, accuracy, finalFocusScore, misspelledWords]);
+
+  // Helper to highlight word differences in typo review
+  const getWordDiff = (correct: string, typed: string) => {
+    const elements: React.ReactNode[] = [];
+    const maxLen = Math.max(correct.length, typed.length);
+    for (let i = 0; i < maxLen; i++) {
+      const cLetter = correct[i];
+      const tLetter = typed[i];
+      if (cLetter === tLetter) {
+        elements.push(<span key={i} className="text-muted-soft">{cLetter}</span>);
+      } else {
+        if (tLetter === undefined) {
+          elements.push(
+            <span key={i} className="text-warning/70 underline" title={`Missed '${cLetter}'`}>
+              {cLetter}
+            </span>
+          );
+        } else if (cLetter === undefined) {
+          elements.push(
+            <span key={i} className="text-error bg-error/10 line-through">
+              {tLetter}
+            </span>
+          );
+        } else {
+          elements.push(
+            <span key={i} className="text-error bg-error/15 line-through decoration-wavy" title={`Typed '${tLetter}' instead of '${cLetter}'`}>
+              {tLetter}
+            </span>
+          );
+        }
+      }
+    }
+    return elements;
+  };
 
   // Keyboard listeners for pressed keys
   useEffect(() => {
@@ -552,7 +604,7 @@ export default function TypePage() {
           <div className="w-full flex flex-col md:flex-row items-stretch gap-6 mb-6">
             
             {/* Left Column: WPM and Accuracy stacked vertically */}
-            <div className="flex flex-col justify-center items-start md:w-[180px] gap-6 pl-4 select-none shrink-0">
+            <div className="flex flex-col justify-center items-start md:w-[180px] gap-6 pl-4 select-none shrink-0 text-left">
               <div>
                 <span className="text-muted-soft text-lg font-mono tracking-wide block mb-0.5">wpm</span>
                 <span className="text-[64px] md:text-[76px] font-bold text-primary leading-none block">{wpm}</span>
@@ -563,9 +615,9 @@ export default function TypePage() {
               </div>
             </div>
 
-            {/* Right Column: Custom SVG Score Chart */}
+            {/* Right Column: Custom Recharts Score Chart */}
             <div className="flex-1 min-h-[220px] bg-background/20 border border-border-hairline/20 rounded-xl p-4 flex items-center justify-center">
-              <ScoreChart 
+              <ResultsChart 
                 history={history} 
                 errorsPerSecond={errorsPerSecond} 
                 elapsedTime={elapsedTime} 
@@ -615,6 +667,224 @@ export default function TypePage() {
               <p className="text-[9px] text-muted-soft/50">00:00:{elapsedTime < 10 ? `0${elapsedTime}` : elapsedTime} session</p>
             </div>
 
+          </div>
+
+          {/* Detailed Analytics Tab Bar */}
+          <div className="w-full mt-8 border border-border-hairline/20 rounded-xl bg-card/10 overflow-hidden select-none">
+            {/* Tabs Headers */}
+            <div className="flex border-b border-border-hairline/10 bg-card/20 text-xs">
+              <button
+                onClick={() => setActiveTab("insights")}
+                className={`flex-1 py-3 px-4 font-mono font-medium flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                  activeTab === "insights"
+                    ? "text-primary bg-background/40 border-b-2 border-primary"
+                    : "text-muted-soft hover:text-foreground hover:bg-card/30"
+                }`}
+              >
+                <Activity className="w-3.5 h-3.5" />
+                <span>Coach & Insights</span>
+              </button>
+              <button
+                onClick={() => setActiveTab("keys")}
+                className={`flex-1 py-3 px-4 font-mono font-medium flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                  activeTab === "keys"
+                    ? "text-primary bg-background/40 border-b-2 border-primary"
+                    : "text-muted-soft hover:text-foreground hover:bg-card/30"
+                }`}
+              >
+                <Target className="w-3.5 h-3.5" />
+                <span>Key Metrics</span>
+              </button>
+              <button
+                onClick={() => setActiveTab("words")}
+                className={`flex-1 py-3 px-4 font-mono font-medium flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                  activeTab === "words"
+                    ? "text-primary bg-background/40 border-b-2 border-primary"
+                    : "text-muted-soft hover:text-foreground hover:bg-card/30"
+                }`}
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>Typo Review ({misspelledWords.length})</span>
+              </button>
+            </div>
+
+            {/* Tab Contents */}
+            <div className="p-5 min-h-[160px]">
+              
+              {/* Tab 1: Coach & Insights */}
+              {activeTab === "insights" && sessionAnalytics.coach && (
+                <div className="flex flex-col md:flex-row gap-6 items-start md:items-stretch animate-fadeIn text-left">
+                  {/* Left part: coach card */}
+                  <div className="flex-1 flex flex-col justify-between gap-3">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+                        <span>AI Coach Recommendation</span>
+                      </h4>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${sessionAnalytics.coach.badgeColor}`}>
+                        {sessionAnalytics.coach.badge}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted leading-relaxed font-sans">
+                      {sessionAnalytics.coach.message}
+                    </p>
+                    {misspelledWords.length > 0 && (
+                      <div className="text-[10px] text-muted-soft mt-1 flex items-center gap-1.5 font-sans">
+                        <span className="w-1.5 h-1.5 rounded-full bg-error shrink-0" />
+                        <span>Practice the custom Zen Mode in the home toolbar to auto-generate words targeting your errors!</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right part: peak speed & metrics */}
+                  <div className="w-full md:w-[260px] border-t md:border-t-0 md:border-l border-border-hairline/10 pt-4 md:pt-0 md:pl-6 flex flex-col gap-3 justify-center">
+                    <div>
+                      <span className="text-[10px] text-muted-soft tracking-wide block">PEAK WPM</span>
+                      <span className="text-2xl font-bold text-primary">
+                        {Math.max(...history.map(h => h.wpm), wpm)}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-soft tracking-wide block">WORDS COMPLETED</span>
+                      <span className="text-base font-semibold text-foreground">
+                        {typedInput.trim().split(/\s+/).filter(Boolean).length} / {words.length}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-soft tracking-wide block">CONSISTENCY</span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="flex-1 h-1.5 bg-card rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-primary transition-all duration-500"
+                            style={{ width: `${finalFocusScore}%` }}
+                          />
+                        </div>
+                        <span className="text-[11px] font-semibold text-foreground">{finalFocusScore}%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 2: Key Metrics */}
+              {activeTab === "keys" && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left animate-fadeIn">
+                  
+                  {/* Weakest keys */}
+                  <div>
+                    <h5 className="text-[11px] font-semibold text-error/80 tracking-wider mb-2 flex items-center gap-1.5">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      <span>WEAKEST KEYS</span>
+                    </h5>
+                    {sessionAnalytics.weakKeys.length > 0 ? (
+                      <div className="flex flex-col gap-1.5">
+                        {sessionAnalytics.weakKeys.slice(0, 3).map((item) => (
+                          <div key={item.key} className="flex items-center justify-between text-xs py-1 px-2 rounded bg-card/25 border border-border-hairline/10">
+                            <span className="font-bold uppercase text-foreground bg-card px-1.5 py-0.5 rounded border border-border-hairline">{item.key}</span>
+                            <span className="text-[11px] text-muted-soft">
+                              err: <strong className="text-error">{Math.round(item.errorRate * 100)}%</strong> ({item.errors} err)
+                            </span>
+                            <span className="text-[11px] text-muted-soft font-mono">
+                              {Math.round(item.avgLatency)}ms
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-muted-soft/60 italic font-sans">No weak keys detected this session.</p>
+                    )}
+                  </div>
+
+                  {/* Fastest keys */}
+                  <div>
+                    <h5 className="text-[11px] font-semibold text-success/80 tracking-wider mb-2 flex items-center gap-1.5">
+                      <Zap className="w-3.5 h-3.5 text-success" />
+                      <span>FASTEST KEYS</span>
+                    </h5>
+                    {sessionAnalytics.fastestKeys.length > 0 ? (
+                      <div className="flex flex-col gap-1.5">
+                        {sessionAnalytics.fastestKeys.slice(0, 3).map((item) => (
+                          <div key={item.key} className="flex items-center justify-between text-xs py-1 px-2 rounded bg-card/25 border border-border-hairline/10">
+                            <span className="font-bold uppercase text-foreground bg-card px-1.5 py-0.5 rounded border border-border-hairline">{item.key}</span>
+                            <span className="text-[11px] text-muted-soft">
+                              speed: <strong className="text-success">{Math.round(60000 / item.avgLatency)} cpm</strong>
+                            </span>
+                            <span className="text-[11px] text-muted-soft font-mono">
+                              {Math.round(item.avgLatency)}ms
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-muted-soft/60 italic font-sans">No speed data available.</p>
+                    )}
+                  </div>
+
+                  {/* Mistake patterns */}
+                  <div>
+                    <h5 className="text-[11px] font-semibold text-primary/80 tracking-wider mb-2 flex items-center gap-1.5">
+                      <BarChart2 className="w-3.5 h-3.5" />
+                      <span>MISTAKE PATTERNS</span>
+                    </h5>
+                    {sessionAnalytics.mistakePatterns.length > 0 ? (
+                      <div className="flex flex-col gap-2">
+                        {sessionAnalytics.mistakePatterns.map((p) => (
+                          <div key={p.type} className="text-xs">
+                            <div className="flex justify-between items-center mb-0.5">
+                              <span className="font-medium text-foreground">{p.description}</span>
+                              <span className="text-[10px] bg-primary/10 text-primary font-bold px-1.5 py-0.2 rounded-full">{p.count}x</span>
+                            </div>
+                            {p.examples.length > 0 && (
+                              <p className="text-[10px] text-muted-soft font-mono">
+                                e.g. {p.examples.join(", ")}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-muted-soft/60 italic font-sans">Perfect typing! No mistake patterns detected.</p>
+                    )}
+                  </div>
+
+                </div>
+              )}
+
+              {/* Tab 3: Misspelled Words Review */}
+              {activeTab === "words" && (
+                <div className="animate-fadeIn text-left">
+                  {misspelledWords.length > 0 ? (
+                    <div>
+                      <p className="text-[11px] text-muted-soft mb-3 font-sans">
+                        Here is a detailed review of the words you mistyped. Correct spelling is shown in green, typed key errors are shown with red highlights:
+                      </p>
+                      <div className="flex flex-wrap gap-2.5 max-h-[140px] overflow-y-auto scrollbar-none pr-1">
+                        {misspelledWords.map((item, idx) => (
+                          <div 
+                            key={idx} 
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-card/20 border border-border-hairline/15 font-mono text-xs hover:border-border-hairline/30 transition-colors"
+                          >
+                            <span className="text-success font-semibold border-r border-border-hairline/20 pr-2 block">
+                              {item.correct}
+                            </span>
+                            <div className="flex items-center font-semibold">
+                              {getWordDiff(item.correct, item.typed)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-4 text-center">
+                      <CheckCircle2 className="w-8 h-8 text-success mb-2 animate-bounce" />
+                      <p className="text-xs font-semibold text-foreground">Flawless Session!</p>
+                      <p className="text-[10px] text-muted-soft mt-0.5 font-sans">You typed every single word perfectly without errors.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+            </div>
           </div>
 
           {/* Toolbar Buttons Row */}
