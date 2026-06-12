@@ -707,7 +707,7 @@ export default function TypePage() {
           <div 
             className="w-full flex-1 flex flex-col justify-center items-center py-2 transition-all duration-300 ease-in-out"
             style={{
-              maxWidth: isFocusMode ? "1080px" : "850px",
+              maxWidth: isFocusMode ? "1300px" : "850px",
             }}
           >
             {/* Live stats HUD - Minimal design */}
