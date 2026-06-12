@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { KeyboardLayoutType as HookLayoutType } from "@/hooks/useTypingTest";
 export type KeyboardLayoutType = HookLayoutType;
 
@@ -15,14 +15,41 @@ interface VirtualKeyboardProps {
   heatmapStyle?: string;
 }
 
-export default function VirtualKeyboard({
+function VirtualKeyboard({
   layout = "qwerty",
-  pressedKeys = [],
+  pressedKeys: propPressedKeys,
   heatmapMode = "none",
   heatmapData = {},
   nextChar = "",
   isFocusMode = false,
 }: VirtualKeyboardProps) {
+  const [localPressedKeys, setLocalPressedKeys] = useState<string[]>([]);
+  const pressedKeys = propPressedKeys !== undefined ? propPressedKeys : localPressedKeys;
+
+  useEffect(() => {
+    if (propPressedKeys !== undefined) return; // use prop if managed externally
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      setLocalPressedKeys((prev) => {
+        if (prev.includes(key)) return prev;
+        return [...prev, key];
+      });
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      setLocalPressedKeys((prev) => prev.filter((k) => k !== key));
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, [propPressedKeys]);
   // Define layout structures
   const keyboardRows = useMemo(() => {
     const qwertyRows = [
@@ -159,3 +186,5 @@ export default function VirtualKeyboard({
     </div>
   );
 }
+
+export default React.memo(VirtualKeyboard);

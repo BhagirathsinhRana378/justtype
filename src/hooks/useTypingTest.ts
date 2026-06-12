@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { SoundType } from "@/utils/audio";
 import { saveSession, TypingSession, KeyTelemetry, generateAdaptiveWords, getSavedSessions } from "@/utils/aiEngine";
 
 const DEFAULT_WORDS = [
@@ -62,10 +61,34 @@ export type TestMode = "time" | "words" | "quote" | "zen" | "custom";
 export type CaretType = "block" | "smooth" | "underline" | "hidden";
 export type KeyboardLayoutType = "qwerty" | "dvorak" | "colemak";
 
+const calculateCorrectChars = (typed: string, targetWords: string[]): number => {
+  if (!typed) return 0;
+  const typedWords = typed.split(" ");
+  let correctCharsCount = 0;
+  
+  for (let w = 0; w < typedWords.length; w++) {
+    const typedWord = typedWords[w];
+    const targetWord = targetWords[w] || "";
+    
+    const minLength = Math.min(typedWord.length, targetWord.length);
+    for (let i = 0; i < minLength; i++) {
+      if (typedWord[i] === targetWord[i]) {
+        correctCharsCount++;
+      }
+    }
+    
+    // Add 1 for the space if this is not the last word in typedWords
+    if (w < typedWords.length - 1) {
+      correctCharsCount++;
+    }
+  }
+  
+  return correctCharsCount;
+};
+
 export function useTypingTest() {
   const [mode, setMode] = useState<TestMode>("time");
   const [limit, setLimit] = useState<number>(30); // 30s or 25 words by default
-  const [soundType, setSoundType] = useState<SoundType>("natural");
   const [caretType, setCaretType] = useState<CaretType>("smooth");
   const [layout, setLayout] = useState<KeyboardLayoutType>("qwerty");
   
@@ -85,20 +108,22 @@ export function useTypingTest() {
   const lastKeyTimeRef = useRef<number>(0);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number>(0);
+  
+  // High-precision active typing duration refs
+  const totalActiveTimeMsRef = useRef<number>(0);
+  const lastResumeTimeRef = useRef<number>(0);
 
   // Load configuration from localStorage on mount
   useEffect(() => {
     if (typeof window !== "undefined") {
       const savedMode = localStorage.getItem("justtype_config_mode") as TestMode;
       const savedLimit = localStorage.getItem("justtype_config_limit");
-      const savedSound = localStorage.getItem("justtype_config_sound") as SoundType;
       const savedCaret = localStorage.getItem("justtype_config_caret") as CaretType;
       const savedLayout = localStorage.getItem("justtype_config_layout") as KeyboardLayoutType;
 
       Promise.resolve().then(() => {
         if (savedMode) setMode(savedMode);
         if (savedLimit) setLimit(parseInt(savedLimit));
-        if (savedSound) setSoundType(savedSound);
         if (savedCaret) setCaretType(savedCaret);
         if (savedLayout) setLayout(savedLayout);
       });
@@ -117,7 +142,7 @@ export function useTypingTest() {
           if (settings.limitType === "time") {
             return { isTime: true, timeLimit: Number(settings.limitValue) || 30 };
           }
-        } catch (e) {}
+        } catch {}
       }
     }
     return { isTime: false, timeLimit: 0 };
@@ -134,13 +159,6 @@ export function useTypingTest() {
     setLimit(newLimit);
     if (typeof window !== "undefined") {
       localStorage.setItem("justtype_config_limit", newLimit.toString());
-    }
-  };
-
-  const updateSoundType = (newSound: SoundType) => {
-    setSoundType(newSound);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("justtype_config_sound", newSound);
     }
   };
 
@@ -190,7 +208,7 @@ export function useTypingTest() {
         if (customSettingsRaw) {
           try {
             settings = { ...settings, ...JSON.parse(customSettingsRaw) };
-          } catch (e) {}
+          } catch {}
         }
 
         let processedText = customText;
@@ -307,6 +325,8 @@ export function useTypingTest() {
     setHistory([]);
     telemetryRef.current = [];
     lastKeyTimeRef.current = 0;
+    totalActiveTimeMsRef.current = 0;
+    lastResumeTimeRef.current = 0;
     
     const { isTime, timeLimit } = checkIfTimeMode();
     if (isTime) {
@@ -316,14 +336,14 @@ export function useTypingTest() {
       setTimeLeft(0);
       setElapsedTime(0);
     }
-  }, [mode, limit, generateWordsList, checkIfTimeMode]);
+  }, [generateWordsList, checkIfTimeMode]);
 
   // Load initial words
   useEffect(() => {
     Promise.resolve().then(() => {
       restartTest();
     });
-  }, [mode, limit, restartTest]);
+  }, [restartTest]);
 
   // Clean interval on unmount
   useEffect(() => {
@@ -340,18 +360,17 @@ export function useTypingTest() {
     }
     
     setStatus("completed");
+
+    // Finalize the active typing duration
+    if (lastResumeTimeRef.current > 0) {
+      totalActiveTimeMsRef.current += Date.now() - lastResumeTimeRef.current;
+      lastResumeTimeRef.current = 0;
+    }
     
     // Final metric calculations
     const timeInMinutes = finalElapsedTime > 0 ? (finalElapsedTime / 60) : 0.01;
     
-    const targetText = words.join(" ");
-    let correctCharsCount = 0;
-    for (let i = 0; i < finalInput.length; i++) {
-      if (finalInput[i] === targetText[i]) {
-        correctCharsCount++;
-      }
-    }
-    
+    const correctCharsCount = calculateCorrectChars(finalInput, words);
     const finalWpm = Math.round((correctCharsCount / 5) / timeInMinutes);
     const finalAccuracy = finalInput.length > 0 
       ? Math.round((correctCharsCount / finalInput.length) * 100) 
@@ -359,6 +378,13 @@ export function useTypingTest() {
       
     setWpm(finalWpm);
     setAccuracy(finalAccuracy);
+
+    // Append final exact snapshot to history
+    setHistory((prev) => {
+      const exists = prev.some((item) => item.time === finalElapsedTime);
+      if (exists) return prev;
+      return [...prev, { time: finalElapsedTime, wpm: finalWpm, accuracy: finalAccuracy }];
+    });
 
     // Save typing session
     const session: TypingSession = {
@@ -393,6 +419,10 @@ export function useTypingTest() {
           timerIntervalRef.current = null;
         }
         setStatus("paused");
+        if (lastResumeTimeRef.current > 0) {
+          totalActiveTimeMsRef.current += Date.now() - lastResumeTimeRef.current;
+          lastResumeTimeRef.current = 0;
+        }
         return;
       }
 
@@ -402,22 +432,55 @@ export function useTypingTest() {
           const nextTime = prev - 1;
           setElapsedTime((el) => {
             const nextEl = el + 1;
-            if (nextTime <= 0) {
-              setTypedInput((input) => {
-                completeTest(input, nextEl);
-                return input;
+            
+            // Recalculate WPM with updated time and push to history
+            setTypedInput((input) => {
+              const correctCount = calculateCorrectChars(input, words);
+              const currentWpm = Math.round((correctCount / 5) / (nextEl / 60 || 0.01));
+              const currentAccuracy = input.length > 0 ? Math.round((correctCount / input.length) * 100) : 100;
+              setWpm(currentWpm);
+              
+              setHistory((prevHistory) => {
+                const exists = prevHistory.some((item) => item.time === nextEl);
+                if (exists) return prevHistory;
+                return [...prevHistory, { time: nextEl, wpm: currentWpm, accuracy: currentAccuracy }];
               });
-              return nextEl;
-            }
+
+              if (nextTime <= 0) {
+                completeTest(input, nextEl);
+              }
+              return input;
+            });
+            
             return nextEl;
           });
           return nextTime;
         });
       } else {
-        setElapsedTime((el) => el + 1);
+        setElapsedTime((el) => {
+          const nextEl = el + 1;
+          
+          // Recalculate WPM with updated time and push to history
+          setTypedInput((input) => {
+            const correctCount = calculateCorrectChars(input, words);
+            const currentWpm = Math.round((correctCount / 5) / (nextEl / 60 || 0.01));
+            const currentAccuracy = input.length > 0 ? Math.round((correctCount / input.length) * 100) : 100;
+            setWpm(currentWpm);
+            
+            setHistory((prevHistory) => {
+              const exists = prevHistory.some((item) => item.time === nextEl);
+              if (exists) return prevHistory;
+              return [...prevHistory, { time: nextEl, wpm: currentWpm, accuracy: currentAccuracy }];
+            });
+
+            return input;
+          });
+          
+          return nextEl;
+        });
       }
     }, 1000);
-  }, [checkIfTimeMode, completeTest]);
+  }, [checkIfTimeMode, completeTest, words]);
 
   const pauseTest = useCallback(() => {
     if (status !== "typing") return;
@@ -426,6 +489,10 @@ export function useTypingTest() {
       timerIntervalRef.current = null;
     }
     setStatus("paused");
+    if (lastResumeTimeRef.current > 0) {
+      totalActiveTimeMsRef.current += Date.now() - lastResumeTimeRef.current;
+      lastResumeTimeRef.current = 0;
+    }
   }, [status]);
 
   const resumeTest = useCallback(() => {
@@ -433,6 +500,7 @@ export function useTypingTest() {
     setStatus("typing");
     const now = Date.now();
     lastKeyTimeRef.current = now;
+    lastResumeTimeRef.current = now;
     startTimerInterval();
   }, [status, startTimerInterval]);
 
@@ -448,6 +516,8 @@ export function useTypingTest() {
       setStatus("typing");
       startTimeRef.current = now;
       lastKeyTimeRef.current = now;
+      lastResumeTimeRef.current = now;
+      totalActiveTimeMsRef.current = 0;
       const { isTime, timeLimit } = checkIfTimeMode();
       if (isTime) {
         setTimeLeft(timeLimit);
@@ -456,6 +526,7 @@ export function useTypingTest() {
     } else if (status === "paused") {
       setStatus("typing");
       lastKeyTimeRef.current = now;
+      lastResumeTimeRef.current = now;
       startTimerInterval();
     }
 
@@ -463,7 +534,19 @@ export function useTypingTest() {
     if (char === "Backspace") {
       setTypedInput((prev) => {
         if (prev.length === 0) return prev;
-        return prev.slice(0, -1);
+        const nextInput = prev.slice(0, -1);
+        
+        // Live update WPM and Accuracy
+        const currentElapsedTime = totalActiveTimeMsRef.current + (now - lastResumeTimeRef.current);
+        const elapsedSec = currentElapsedTime / 1000 || 0.01;
+        const correctCount = calculateCorrectChars(nextInput, words);
+        const currentWpm = Math.round((correctCount / 5) / (elapsedSec / 60));
+        const currentAccuracy = nextInput.length > 0 ? Math.round((correctCount / nextInput.length) * 100) : 100;
+        
+        setWpm(currentWpm);
+        setAccuracy(currentAccuracy);
+        
+        return nextInput;
       });
       lastKeyTimeRef.current = now;
       return;
@@ -483,13 +566,23 @@ export function useTypingTest() {
 
       if (!isCorrect) setRawMistakes((m) => m + 1);
 
+      // Live update WPM and Accuracy
+      const currentElapsedTime = totalActiveTimeMsRef.current + (now - lastResumeTimeRef.current);
+      const elapsedSec = currentElapsedTime / 1000 || 0.01;
+      const correctCount = calculateCorrectChars(nextInput, words);
+      const currentWpm = Math.round((correctCount / 5) / (elapsedSec / 60));
+      const currentAccuracy = nextInput.length > 0 ? Math.round((correctCount / nextInput.length) * 100) : 100;
+      
+      setWpm(currentWpm);
+      setAccuracy(currentAccuracy);
+
       const { isTime } = checkIfTimeMode();
       if (!isTime && nextInput.length >= targetText.length) {
+        const finalActiveTime = totalActiveTimeMsRef.current + (now - lastResumeTimeRef.current);
+        const finalSec = finalActiveTime / 1000;
         setTimeout(() => {
-          setElapsedTime((el) => {
-            completeTest(nextInput, el);
-            return el;
-          });
+          setElapsedTime(finalSec);
+          completeTest(nextInput, finalSec);
         }, 0);
       }
 
@@ -497,28 +590,10 @@ export function useTypingTest() {
     });
   }, [status, words, completeTest, startTimerInterval, checkIfTimeMode]);
 
-  // Periodic calculator for live graph history (every second)
-  useEffect(() => {
-    if (status !== "typing" || elapsedTime <= 0) return;
-    const targetText = words.join(" ");
-    let correctCount = 0;
-    for (let i = 0; i < typedInput.length; i++) {
-      if (typedInput[i] === targetText[i]) correctCount++;
-    }
-    const currentWpm = Math.round((correctCount / 5) / (elapsedTime / 60 || 0.01));
-    const currentAccuracy = typedInput.length > 0 ? Math.round((correctCount / typedInput.length) * 100) : 100;
-    
-    Promise.resolve().then(() => {
-      setWpm(currentWpm);
-      setAccuracy(currentAccuracy);
-      setHistory((prev) => [...prev, { time: elapsedTime, wpm: currentWpm, accuracy: currentAccuracy }]);
-    });
-  }, [elapsedTime, typedInput, words, status]);
-
   return {
-    mode, limit, soundType, caretType, layout, words, typedInput, status, timeLeft, elapsedTime, rawMistakes, wpm, accuracy, history,
+    mode, limit, caretType, layout, words, typedInput, status, timeLeft, elapsedTime, rawMistakes, wpm, accuracy, history,
     getTelemetry: () => telemetryRef.current,
-    setMode: updateMode, setLimit: updateLimit, setSoundType: updateSoundType, setCaretType: updateCaretType, setLayout: updateLayout, restartTest, registerKeystroke,
+    setMode: updateMode, setLimit: updateLimit, setCaretType: updateCaretType, setLayout: updateLayout, restartTest, registerKeystroke,
     pauseTest, resumeTest
   };
 }

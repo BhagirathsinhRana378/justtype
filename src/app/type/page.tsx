@@ -177,7 +177,6 @@ export default function TypePage() {
     resumeTest
   } = useTypingTest();
 
-  const [pressedKeys, setPressedKeys] = useState<string[]>([]);
   const [heatmapData, setHeatmapData] = useState<Record<string, { errorRate: number; avgLatency: number; score: number }>>({});
 
   // Custom text mode state variables
@@ -201,37 +200,40 @@ export default function TypePage() {
   useEffect(() => {
     if (typeof window !== "undefined") {
       const savedText = localStorage.getItem("justtype_custom_text");
-      if (savedText) setCustomText(savedText);
-
       const savedSettingsRaw = localStorage.getItem("justtype_custom_settings");
-      if (savedSettingsRaw) {
-        try {
-          const settings = JSON.parse(savedSettingsRaw);
-          if (settings.mode) setCustomMode(settings.mode);
-          if (settings.limitType) setCustomLimitType(settings.limitType);
-          if (settings.limitValue) setCustomLimitValue(Number(settings.limitValue));
-          if (settings.delimiter) setCustomDelimiter(settings.delimiter);
-          if (settings.removeZeroWidth !== undefined) setRemoveZeroWidth(settings.removeZeroWidth);
-          if (settings.removeFancyTypography !== undefined) setRemoveFancyTypography(settings.removeFancyTypography);
-          if (settings.replaceControlChars !== undefined) setReplaceControlChars(settings.replaceControlChars);
-          if (settings.replaceNewlines) setReplaceNewlines(settings.replaceNewlines);
-          if (settings.wordsFilter !== undefined) setWordsFilter(settings.wordsFilter);
-        } catch (e) {}
-      }
-
       const savedListRaw = localStorage.getItem("justtype_saved_texts");
-      if (savedListRaw) {
-        try {
-          setSavedTexts(JSON.parse(savedListRaw));
-        } catch (e) {}
-      } else {
-        const defaultList = [
-          { id: "default_1", name: "The Quick Brown Fox", text: "The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs." },
-          { id: "default_2", name: "JS Arrow Functions", text: "const sum = (a, b) => a + b;\nconst multiply = (a, b) => {\n  return a * b;\n};" }
-        ];
-        setSavedTexts(defaultList);
-        localStorage.setItem("justtype_saved_texts", JSON.stringify(defaultList));
-      }
+
+      Promise.resolve().then(() => {
+        if (savedText) setCustomText(savedText);
+
+        if (savedSettingsRaw) {
+          try {
+            const settings = JSON.parse(savedSettingsRaw);
+            if (settings.mode) setCustomMode(settings.mode);
+            if (settings.limitType) setCustomLimitType(settings.limitType);
+            if (settings.limitValue) setCustomLimitValue(Number(settings.limitValue));
+            if (settings.delimiter) setCustomDelimiter(settings.delimiter);
+            if (settings.removeZeroWidth !== undefined) setRemoveZeroWidth(settings.removeZeroWidth);
+            if (settings.removeFancyTypography !== undefined) setRemoveFancyTypography(settings.removeFancyTypography);
+            if (settings.replaceControlChars !== undefined) setReplaceControlChars(settings.replaceControlChars);
+            if (settings.replaceNewlines) setReplaceNewlines(settings.replaceNewlines);
+            if (settings.wordsFilter !== undefined) setWordsFilter(settings.wordsFilter);
+          } catch {}
+        }
+
+        if (savedListRaw) {
+          try {
+            setSavedTexts(JSON.parse(savedListRaw));
+          } catch {}
+        } else {
+          const defaultList = [
+            { id: "default_1", name: "The Quick Brown Fox", text: "The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs." },
+            { id: "default_2", name: "JS Arrow Functions", text: "const sum = (a, b) => a + b;\nconst multiply = (a, b) => {\n  return a * b;\n};" }
+          ];
+          setSavedTexts(defaultList);
+          localStorage.setItem("justtype_saved_texts", JSON.stringify(defaultList));
+        }
+      });
     }
   }, []);
 
@@ -567,30 +569,7 @@ export default function TypePage() {
     return elements;
   };
 
-  // Keyboard listeners for pressed keys
-  useEffect(() => {
-    const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if (status === "completed") return;
 
-      const key = e.key.toLowerCase();
-      setPressedKeys((prev) => {
-        if (prev.includes(key)) return prev;
-        return [...prev, key];
-      });
-    };
-
-    const handleGlobalKeyUp = (e: KeyboardEvent) => {
-      const key = e.key.toLowerCase();
-      setPressedKeys((prev) => prev.filter((k) => k !== key));
-    };
-
-    window.addEventListener("keydown", handleGlobalKeyDown);
-    window.addEventListener("keyup", handleGlobalKeyUp);
-    return () => {
-      window.removeEventListener("keydown", handleGlobalKeyDown);
-      window.removeEventListener("keyup", handleGlobalKeyUp);
-    };
-  }, [status]);
 
   // Load telemetry stats for keyboard heatmap overlay
   useEffect(() => {
@@ -942,7 +921,6 @@ export default function TypePage() {
           >
             <VirtualKeyboard 
               layout={layout} 
-              pressedKeys={pressedKeys} 
               heatmapMode="none"
               heatmapData={heatmapData}
               interactive={false}
@@ -1464,7 +1442,7 @@ export default function TypePage() {
                       <button
                         key={m.id}
                         type="button"
-                        onClick={() => setCustomMode(m.id as any)}
+                        onClick={() => setCustomMode(m.id as "simple" | "repeat" | "shuffle" | "random")}
                         className={`px-3 py-2 rounded-xl text-left border transition-all cursor-pointer ${
                           customMode === m.id
                             ? "bg-primary/10 border-primary text-primary font-semibold shadow-sm"
@@ -1491,7 +1469,7 @@ export default function TypePage() {
                       <button
                         key={d.id}
                         type="button"
-                        onClick={() => setCustomDelimiter(d.id as any)}
+                        onClick={() => setCustomDelimiter(d.id as "space" | "pipe" | "newline")}
                         className={`flex-1 py-1.5 text-center text-xs font-medium rounded-md transition-colors cursor-pointer ${
                           customDelimiter === d.id
                             ? "bg-primary text-white font-semibold"
@@ -1517,7 +1495,7 @@ export default function TypePage() {
                         <button
                           key={l.id}
                           type="button"
-                          onClick={() => setCustomLimitType(l.id as any)}
+                          onClick={() => setCustomLimitType(l.id as "words" | "time" | "infinite")}
                           className={`flex-1 py-1.5 text-center text-xs font-medium rounded-md transition-colors cursor-pointer ${
                             customLimitType === l.id
                               ? "bg-primary text-white font-semibold"
@@ -1549,7 +1527,7 @@ export default function TypePage() {
                   <span className="text-xs font-semibold text-muted-soft">Text Filters</span>
                   <select
                     value={wordsFilter}
-                    onChange={(e) => setWordsFilter(e.target.value as any)}
+                    onChange={(e) => setWordsFilter(e.target.value as "lowercase" | "uppercase" | "no_punctuation" | "no_numbers" | "")}
                     className="w-full px-3 py-2 text-xs bg-card-elevated border border-border-hairline rounded-xl outline-none pr-8 cursor-pointer text-muted hover:text-foreground font-semibold"
                   >
                     <option value="">No Filter (As Entered)</option>
@@ -1609,7 +1587,7 @@ export default function TypePage() {
                         <button
                           key={n.id}
                           type="button"
-                          onClick={() => setReplaceNewlines(n.id as any)}
+                          onClick={() => setReplaceNewlines(n.id as "space" | "period_space" | "none")}
                           className={`flex-1 py-1 text-center text-[10px] font-medium rounded transition-colors cursor-pointer ${
                             replaceNewlines === n.id
                               ? "bg-primary/20 text-primary font-semibold"

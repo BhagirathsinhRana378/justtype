@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Settings, ShieldAlert, Check, Sparkles, Volume2, MousePointerClick, Type } from "lucide-react";
+import { Settings, ShieldAlert, Check, Sparkles, MousePointerClick, Type } from "lucide-react";
 import { KeyboardLayoutType } from "@/hooks/useTypingTest";
 import { THEMES, ThemeMeta, applyTheme, DEFAULT_THEME_ID, THEME_STORAGE_KEY } from "@/utils/themes";
 import SectionHeader from "@/components/SectionHeader";
@@ -61,7 +61,6 @@ function ThemePreviewCard({
 export default function SettingsPage() {
   const [theme, setTheme] = useState(DEFAULT_THEME_ID);
   const [layout, setLayout] = useState<KeyboardLayoutType>("qwerty");
-  const [sound, setSound] = useState("click");
   const [caret, setCaret] = useState("smooth");
   const [font, setFont] = useState("sans");
   const [resetOpen, setResetOpen] = useState(false);
@@ -72,7 +71,6 @@ export default function SettingsPage() {
       /* eslint-disable react-hooks/set-state-in-effect */
       setTheme(localStorage.getItem(THEME_STORAGE_KEY) || DEFAULT_THEME_ID);
       setLayout((localStorage.getItem("justtype_config_layout") || "qwerty") as KeyboardLayoutType);
-      setSound(localStorage.getItem("justtype_config_sound") || "click");
       setCaret(localStorage.getItem("justtype_config_caret") || "smooth");
       setFont(localStorage.getItem("justtype_config_font") || "sans");
       /* eslint-enable react-hooks/set-state-in-effect */
@@ -89,10 +87,7 @@ export default function SettingsPage() {
     localStorage.setItem("justtype_config_layout", newLayout);
   };
 
-  const handleSoundChange = (newSound: string) => {
-    setSound(newSound);
-    localStorage.setItem("justtype_config_sound", newSound);
-  };
+
 
   const handleCaretChange = (newCaret: string) => {
     setCaret(newCaret);
@@ -126,7 +121,7 @@ export default function SettingsPage() {
         <SectionHeader
           icon={Settings}
           title="Control Center"
-          subtitle="Customize typography, sounds, carets, and color themes. Persisted locally."
+          subtitle="Customize typography, carets, and color themes. Persisted locally."
         />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -183,36 +178,7 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              {/* Sound settings */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border-hairline">
-                <div className="flex items-center gap-2">
-                  <Volume2 className="w-4 h-4 text-muted" aria-hidden="true" />
-                  <div>
-                    <h3 className="text-sm font-medium text-foreground">Acoustic Feedback</h3>
-                    <p className="text-xs text-muted">Tactile key stroke synthesizer clicks.</p>
-                  </div>
-                </div>
-                <div className="flex gap-1.5 bg-background p-1 border border-border-hairline rounded" role="radiogroup" aria-label="Sound profile">
-                  {[
-                    { id: "natural", label: "Natural" },
-                    { id: "signature", label: "Signature" },
-                    { id: "typeist", label: "Typeist" },
-                    { id: "silent", label: "Silent" },
-                  ].map((s) => (
-                    <button
-                      key={s.id}
-                      role="radio"
-                      aria-checked={sound === s.id}
-                      onClick={() => handleSoundChange(s.id)}
-                      className={`px-3 py-1.5 text-xs font-mono rounded cursor-pointer transition-all ${
-                        sound === s.id ? "bg-primary text-white font-semibold" : "text-muted hover:text-foreground"
-                      }`}
-                    >
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+
 
               {/* Caret selector */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border-hairline">
@@ -292,9 +258,7 @@ export default function SettingsPage() {
                 <p className="text-foreground">
                   Font: <span className="text-accent-teal">{font}</span>
                 </p>
-                <p className="text-foreground">
-                  Sound: <span className="text-accent-amber">{sound}</span>
-                </p>
+
                 <div className="mt-2 pt-2 border-t border-border-hairline text-[11px] leading-relaxed text-muted">
                   The quick brown fox jumps over the lazy dog.
                 </div>
