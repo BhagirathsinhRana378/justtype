@@ -7,6 +7,7 @@ export interface FontDef {
 }
 
 export const MONO_FONTS: FontDef[] = [
+  { name: "Adwaita Mono", family: "'Adwaita Mono', monospace", category: "mono", source: "google" },
   { name: "Roboto Mono", family: "'Roboto Mono', monospace", category: "mono", source: "google" },
   { name: "IBM Plex Mono", family: "'IBM Plex Mono', monospace", category: "mono", source: "google" },
   { name: "JetBrains Mono", family: "'JetBrains Mono', monospace", category: "mono", source: "google" },
@@ -19,7 +20,8 @@ export const MONO_FONTS: FontDef[] = [
   { name: "CommitMono", family: "'CommitMono', monospace", category: "mono", source: "fontsource", fontsourcePkg: "commitmono" },
   { name: "Courier", family: "'Courier New', Courier, monospace", category: "mono", source: "system" },
   { name: "Iosevka", family: "'Iosevka', monospace", category: "mono", source: "fontsource", fontsourcePkg: "iosevka" },
-  { name: "Inconsolata", family: "'Inconsolata', monospace", category: "mono", source: "google" }
+  { name: "Inconsolata", family: "'Inconsolata', monospace", category: "mono", source: "google" },
+  { name: "Overpass Mono", family: "'Overpass Mono', monospace", category: "mono", source: "google" }
 ];
 
 export const SANS_FONTS: FontDef[] = [
@@ -33,7 +35,10 @@ export const SANS_FONTS: FontDef[] = [
   { name: "Titillium", family: "'Titillium Web', sans-serif", category: "sans", source: "google" },
   { name: "Nunito", family: "'Nunito', sans-serif", category: "sans", source: "google" },
   { name: "Oxygen", family: "'Oxygen', sans-serif", category: "sans", source: "google" },
-  { name: "Geist", family: "'Geist', sans-serif", category: "sans", source: "google" }
+  { name: "Geist", family: "'Geist', sans-serif", category: "sans", source: "google" },
+  { name: "Parkinsans", family: "'Parkinsans', sans-serif", category: "sans", source: "google" },
+  { name: "Ubuntu", family: "'Ubuntu', sans-serif", category: "sans", source: "google" },
+  { name: "Itim", family: "'Itim', cursive", category: "sans", source: "google" }
 ];
 
 export const READABLE_FONTS: FontDef[] = [
@@ -49,7 +54,11 @@ export const DISPLAY_FONTS: FontDef[] = [
   { name: "Proto", family: "'Proto', sans-serif", category: "display", source: "fontsource", fontsourcePkg: "proto" },
   { name: "Mononoki", family: "'mononoki', monospace", category: "display", source: "fontsource", fontsourcePkg: "mononoki" },
   { name: "Sarabun", family: "'Sarabun', sans-serif", category: "display", source: "google" },
-  { name: "Boon", family: "'Boon', sans-serif", category: "display", source: "fontsource", fontsourcePkg: "boon" }
+  { name: "Boon", family: "'Boon', sans-serif", category: "display", source: "fontsource", fontsourcePkg: "boon" },
+  { name: "Coming Soon", family: "'Coming Soon', cursive", category: "display", source: "google" },
+  { name: "Lalezar", family: "'Lalezar', display", category: "display", source: "google" },
+  { name: "Noto Naskh Arabic", family: "'Noto Naskh Arabic', serif", category: "display", source: "google" },
+  { name: "Noto Sans Lao", family: "'Noto Sans Lao', sans-serif", category: "display", source: "google" }
 ];
 
 export const ALL_FONTS: FontDef[] = [
