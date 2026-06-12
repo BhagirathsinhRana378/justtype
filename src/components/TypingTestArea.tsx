@@ -58,6 +58,19 @@ export default function TypingTestArea({
   // Keyboard shortcut listener (Tab for restart, auto-focus on regular character keys)
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Check if user is typing in an input, textarea, or contenteditable element
+      const activeEl = document.activeElement;
+      const isEditable = activeEl && (
+        activeEl.tagName === "INPUT" ||
+        activeEl.tagName === "TEXTAREA" ||
+        activeEl.getAttribute("contenteditable") === "true"
+      );
+
+      if (isEditable) {
+        // Do not intercept keystrokes or steal focus if typing in an input or textarea
+        return;
+      }
+
       if (
         !isFocused &&
         e.key.length === 1 &&
