@@ -4,7 +4,7 @@ import { loadFont, loadLocalFont, preloadAllFonts } from "@/lib/fontLoader";
 import { getLocalFontsDb, saveLocalFontDb, deleteLocalFontDb, LocalFontData } from "@/lib/localFontDb";
 
 // Module-level global state to sync across hook instances
-let globalFontSize = 1.55;
+let globalFontSize = 1.0;
 let globalFontFamily = "Roboto Mono";
 let globalLocalFonts: LocalFontData[] = [];
 let dbLoaded = false;
@@ -19,18 +19,20 @@ function applyTypographyStyles(size: number, family: string) {
   if (typeof document === "undefined") return;
 
   const docEl = document.documentElement;
-  docEl.style.setProperty("--typing-font-size", `${size}rem`);
+  
+  // Scale dynamically relative to responsive base size
+  docEl.style.setProperty("--typing-font-size", `calc(${size} * var(--typing-font-size-base))`);
   
   // Resolve the actual font family CSS value
   const fontDef = FONT_MAP.get(family);
   const familyValue = fontDef ? fontDef.family : `'${family}', sans-serif`;
   docEl.style.setProperty("--typing-font-family", familyValue);
 
-  // Apply scaling formulas
-  docEl.style.setProperty("--typing-word-gap", `${(size * 0.45).toFixed(3)}rem`);
-  docEl.style.setProperty("--typing-line-height", `${(size * 1.55).toFixed(3)}rem`);
-  docEl.style.setProperty("--typing-cursor-height", `${(size * 1.03).toFixed(3)}rem`);
-  docEl.style.setProperty("--typing-letter-spacing", "-0.015em");
+  // Apply original scaling parameters
+  docEl.style.setProperty("--typing-word-gap", "0.3em");
+  docEl.style.setProperty("--typing-line-height", "1.7");
+  docEl.style.setProperty("--typing-cursor-height", "1.22em");
+  docEl.style.setProperty("--typing-letter-spacing", "normal");
 
   // Asynchronously trigger loading the font
   if (fontDef) {
@@ -41,7 +43,18 @@ function applyTypographyStyles(size: number, family: string) {
 // Initial sync on client boot
 if (typeof window !== "undefined") {
   const savedSize = localStorage.getItem("justtype_font_size");
-  if (savedSize) globalFontSize = parseFloat(savedSize);
+  if (savedSize) {
+    const parsed = parseFloat(savedSize);
+    // Migrate old default (1.55) or values set in absolute rems to 1.0 baseline
+    if (parsed === 1.55 || parsed > 2.0) {
+      globalFontSize = 1.0;
+      localStorage.setItem("justtype_font_size", "1.0");
+    } else {
+      globalFontSize = parsed;
+    }
+  } else {
+    globalFontSize = 1.0;
+  }
   
   const savedFamily = localStorage.getItem("justtype_font_family");
   if (savedFamily) globalFontFamily = savedFamily;
@@ -58,7 +71,6 @@ if (typeof window !== "undefined") {
     fonts.forEach((f) => {
       loadLocalFont(f.name, f.dataUrl);
     });
-    // Reapply theme typography in case active font is custom local font
     applyTypographyStyles(globalFontSize, globalFontFamily);
     emit();
   }).catch(() => {

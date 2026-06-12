@@ -32,7 +32,7 @@ export const SANS_FONTS: FontDef[] = [
   { name: "Lato", family: "'Lato', sans-serif", category: "sans", source: "google" },
   { name: "Roboto", family: "'Roboto', sans-serif", category: "sans", source: "google" },
   { name: "Space Grotesk", family: "'Space Grotesk', sans-serif", category: "sans", source: "google" },
-  { name: "Titillium", family: "'Titillium Web', sans-serif", category: "sans", source: "google" },
+  { name: "Titillium Web", family: "'Titillium Web', sans-serif", category: "sans", source: "google" },
   { name: "Nunito", family: "'Nunito', sans-serif", category: "sans", source: "google" },
   { name: "Oxygen", family: "'Oxygen', sans-serif", category: "sans", source: "google" },
   { name: "Geist", family: "'Geist', sans-serif", category: "sans", source: "google" },

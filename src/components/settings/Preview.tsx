@@ -7,10 +7,9 @@ export default function Preview() {
   useTypography();
 
   return (
-    <div className="w-full flex flex-col gap-2">
-      {/* Live typing board rendering with active font variables */}
+    <div className="w-full max-w-lg">
       <div 
-        className="p-6 bg-card/45 border border-border-hairline/40 rounded-[6px] flex items-center justify-center overflow-hidden min-h-[110px] select-none w-full"
+        className="w-full h-40 border border-border-hairline/60 rounded-[10px] bg-card/15 flex items-center justify-center overflow-hidden select-none"
         style={{
           fontFamily: "var(--typing-font-family)",
           fontSize: "var(--typing-font-size)",
@@ -18,18 +17,18 @@ export default function Preview() {
           letterSpacing: "var(--typing-letter-spacing)",
         }}
       >
-        <div className="flex flex-wrap items-center justify-center text-center w-full">
-          {/* Typed Word: "speed" (Normal Contrast) */}
+        <div className="flex items-center justify-center text-center w-full px-4">
+          {/* Past word: "speed" (Normal color) */}
           <span 
-            className="inline-flex text-foreground"
+            className="text-foreground/80 font-normal"
             style={{ marginRight: "var(--typing-word-gap)" }}
           >
             speed
           </span>
 
-          {/* Active Word: "focus" (Accent Cursor) */}
+          {/* Current word: "focus" (Accent caret) */}
           <span 
-            className="inline-flex relative"
+            className="relative inline-flex"
             style={{ marginRight: "var(--typing-word-gap)" }}
           >
             <span className="text-foreground">fo</span>
@@ -37,26 +36,24 @@ export default function Preview() {
               className="absolute bg-primary"
               style={{
                 left: "2ch",
-                width: "2px",
+                width: "var(--cursor-thickness, 2px)",
                 height: "var(--typing-cursor-height)",
                 top: "calc(50% - var(--typing-cursor-height) / 2)",
                 zIndex: 10,
               }}
             />
-            <span className="text-muted-soft/85">cus</span>
+            <span className="text-muted-soft">cus</span>
           </span>
 
-          {/* Future Word: "precision" (Muted) */}
+          {/* Future words: "precision", "typing" (Muted color) */}
           <span 
-            className="inline-flex text-muted-soft/60"
+            className="text-muted-soft/50"
             style={{ marginRight: "var(--typing-word-gap)" }}
           >
             precision
           </span>
-
-          {/* Future Word: "rhythm" (Muted) */}
-          <span className="inline-flex text-muted-soft/60">
-            rhythm
+          <span className="text-muted-soft/50">
+            typing
           </span>
         </div>
       </div>

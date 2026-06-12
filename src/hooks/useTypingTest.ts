@@ -130,6 +130,13 @@ export function useTypingTest() {
     }
   }, []);
 
+  // Sync typing status class to document root for Focus Mode overrides
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.classList.toggle("is-typing", status === "typing");
+    }
+  }, [status]);
+
   // Sync config changes to localStorage
   // Helper to determine if the test has a time limit
   const checkIfTimeMode = useCallback(() => {
