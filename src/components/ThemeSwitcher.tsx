@@ -2,44 +2,52 @@
 
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { Palette, Sun, Moon, Cloud, TreePine, Check } from "lucide-react";
+import { Palette, Sun, Moon, Zap, Sparkles, Rocket, Ghost, Shield, Leaf, Heart, BookOpen } from "lucide-react";
+import { applyTheme, THEME_STORAGE_KEY, DEFAULT_THEME_ID, SIGNATURE_THEME_IDS, SIGNATURE_THEME_STORAGE_KEY } from "@/utils/themes";
 
-const THEMES = [
-  { id: "cream", name: "Light", icon: Sun, desc: "Claude Cream" },
-  { id: "charcoal", name: "Dark", icon: Moon, desc: "Charcoal" },
-  { id: "midnight", name: "Midnight", icon: Cloud, desc: "Deep Navy" },
-  { id: "forest", name: "Forest", icon: TreePine, desc: "Evergreen" },
+const QUICK_THEMES = [
+  { id: "cream", name: "Cream", icon: Sun, desc: "Claude Cream" },
+  { id: "archive-404", name: "Archive", icon: Ghost, desc: "Default Dark" },
+  { id: "velvet-eclipse", name: "Velvet", icon: Heart, desc: "Velvet Eclipse" },
+  { id: "phantom-titanium", name: "Phantom", icon: Shield, desc: "Phantom Titanium" },
+  { id: "solar-ash", name: "Solar", icon: Zap, desc: "Solar Ash" },
+  { id: "frost-protocol", name: "Frost", icon: Sparkles, desc: "Frost Protocol" },
+  { id: "deep-moss", name: "Moss", icon: Leaf, desc: "Deep Moss" },
+  { id: "neon-cathedral", name: "Neon", icon: Rocket, desc: "Neon Cathedral" },
+  { id: "ivory-operator", name: "Ivory", icon: BookOpen, desc: "Ivory Operator" },
 ];
 
 export default function ThemeSwitcher() {
-  const [currentTheme, setCurrentTheme] = useState("cream");
+  const [currentTheme, setCurrentTheme] = useState(DEFAULT_THEME_ID);
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
-  const isLandingPage = pathname === "/";
+  const isLandingPage = pathname === "/" || pathname === "";
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem("justtype_config_theme") || "cream";
-    Promise.resolve().then(() => {
+    const savedTheme = localStorage.getItem(THEME_STORAGE_KEY) || DEFAULT_THEME_ID;
+    const signatureTheme = localStorage.getItem(SIGNATURE_THEME_STORAGE_KEY) || DEFAULT_THEME_ID;
+    
+    // If we are on landing, we reflect the signature theme in the UI
+    if (isLandingPage && !SIGNATURE_THEME_IDS.includes(savedTheme)) {
+      setCurrentTheme(signatureTheme);
+    } else {
       setCurrentTheme(savedTheme);
-    });
-    document.documentElement.setAttribute("data-theme", savedTheme);
-  }, []);
+    }
+  }, [isLandingPage, pathname]);
 
   const handleThemeChange = (id: string) => {
     setCurrentTheme(id);
-    localStorage.setItem("justtype_config_theme", id);
-    document.documentElement.setAttribute("data-theme", id);
+    applyTheme(id);
     setIsOpen(false);
+    window.dispatchEvent(new Event("storage"));
   };
 
-  const filteredThemes = isLandingPage 
-    ? THEMES.filter(t => ["cream", "charcoal"].includes(t.id))
-    : THEMES;
+  const filteredThemes = QUICK_THEMES;
 
-  // Determine what name to show in the button
-  const displayThemeName = isLandingPage && ["midnight", "forest"].includes(currentTheme)
-    ? "Dark"
-    : THEMES.find(t => t.id === currentTheme)?.name || currentTheme;
+  // Find matching theme object for display
+  const activeThemeMeta = QUICK_THEMES.find(t => t.id === currentTheme);
+  const displayThemeName = activeThemeMeta?.name || currentTheme;
+  const ActiveIcon = activeThemeMeta?.icon || Palette;
 
   return (
     <div className="relative">
@@ -48,7 +56,7 @@ export default function ThemeSwitcher() {
         className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card border border-border-hairline hover:border-primary/50 text-muted hover:text-foreground transition-all duration-200 cursor-pointer"
         aria-label="Switch theme"
       >
-        <Palette className="w-4 h-4" />
+        <ActiveIcon className="w-4 h-4" />
         <span className="text-xs font-medium hidden sm:inline capitalize">{displayThemeName}</span>
       </button>
 

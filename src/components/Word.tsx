@@ -100,10 +100,10 @@ const Word: React.FC<WordProps> = ({
           className="absolute pointer-events-none bg-primary opacity-100"
           style={{
             left: `${caretLeft}px`,
-            width: caretType === "smooth" ? "1.5px" : "0.62em",
+            width: caretType === "smooth" ? "var(--cursor-thickness, 1.5px)" : "0.62em",
             height: caretType === "underline" ? "3px" : "var(--typing-cursor-height)",
-            top: caretType === "underline" ? "90%" : "calc(50% - var(--typing-cursor-height) / 2)",
-            transition: "left 40ms linear",
+            top: caretType === "underline" ? "90%" : "12%",
+            transition: "left var(--cursor-speed, 40ms) linear",
             zIndex: caretType === "block" ? -1 : 10,
           }}
         />
@@ -117,26 +117,26 @@ const Word: React.FC<WordProps> = ({
         if (isPast) {
           // Completed words: remain solid white, do NOT fade
           if (item.isExtra) {
-            charClass = "text-error font-semibold";
+            charClass = "text-error";
           } else {
             const typedChar = typed[item.index];
             if (typedChar === item.char) {
-              charClass = "text-foreground font-semibold";
+              charClass = "text-foreground";
             } else {
-              charClass = "text-error font-semibold";
+              charClass = "text-error";
             }
           }
         } else if (isActive) {
           // Active word being typed
           if (isCharTyped) {
             if (item.isExtra) {
-              charClass = "text-error font-semibold";
+              charClass = "text-error";
             } else {
               const typedChar = typed[item.index];
               if (typedChar === item.char) {
-                charClass = "text-foreground font-semibold"; // Transition immediately to solid white and font weight 600
+                charClass = "text-foreground"; // Transition immediately to solid white
               } else {
-                charClass = "text-error font-semibold"; // Soft muted red
+                charClass = "text-error"; // Soft muted red
               }
             }
           } else {

@@ -1,305 +1,325 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Settings, ShieldAlert, Check, Sparkles, MousePointerClick, Type } from "lucide-react";
-import { KeyboardLayoutType } from "@/hooks/useTypingTest";
-import { THEMES, ThemeMeta, applyTheme, DEFAULT_THEME_ID, THEME_STORAGE_KEY } from "@/utils/themes";
-import SectionHeader from "@/components/SectionHeader";
-import ConfirmDialog from "@/components/ConfirmDialog";
+import React, { useState, useMemo } from "react";
+import { Search } from "lucide-react";
 
 import TypographySettings from "@/components/settings/TypographySettings";
+import ThemeSettings from "@/components/settings/ThemeSettings";
+import TypingExperienceSettings from "@/components/settings/TypingExperienceSettings";
+import AccessibilitySettings from "@/components/settings/AccessibilitySettings";
+import VisualPreferencesSettings from "@/components/settings/VisualPreferencesSettings";
+import TestExperienceSettings from "@/components/settings/TestExperienceSettings";
+import PerformanceSettings from "@/components/settings/PerformanceSettings";
+import ImportExportSettings from "@/components/settings/ImportExportSettings";
+import ExperimentalSettings from "@/components/settings/ExperimentalSettings";
+import DangerZoneSettings from "@/components/settings/DangerZoneSettings";
 
-function ThemePreviewCard({
-  theme,
-  active,
-  onSelect,
-}: {
-  theme: ThemeMeta;
-  active: boolean;
-  onSelect: () => void;
-}) {
-  const p = theme.preview;
+interface SettingsSectionProps {
+  id: string;
+  title: string;
+  subtitle: string;
+  children: React.ReactNode;
+}
+
+function SettingsSection({ id, title, subtitle, children }: SettingsSectionProps) {
+  if (!children) return null;
   return (
-    <button
-      onClick={onSelect}
-      aria-pressed={active}
-      aria-label={`Activate ${theme.name} theme`}
-      className={`relative rounded-lg border text-left overflow-hidden transition-all duration-200 cursor-pointer ${
-        active ? "border-primary ring-2 ring-primary" : "border-border-hairline hover:border-primary/40"
-      }`}
-    >
-      {/* Live mini mockup of a typing line rendered in the theme's actual colors */}
-      <div className="p-3" style={{ backgroundColor: p.background }} aria-hidden="true">
-        <div
-          className="rounded-md p-2.5 border"
-          style={{ backgroundColor: p.surface, borderColor: `${p.muted}33` }}
-        >
-          <p className="font-mono text-[11px] leading-relaxed whitespace-nowrap overflow-hidden">
-            <span style={{ color: p.text }}>the quick </span>
-            <span style={{ color: p.primary }}>brown</span>
-            <span style={{ color: p.muted }}> fox jumps</span>
-            <span
-              className="inline-block w-[2px] h-[11px] ml-[1px] align-middle caret-blink"
-              style={{ backgroundColor: p.primary }}
-            />
-          </p>
-          <div className="flex gap-1 mt-2">
-            <span className="h-1 w-8 rounded-full" style={{ backgroundColor: p.primary }} />
-            <span className="h-1 w-4 rounded-full" style={{ backgroundColor: `${p.muted}66` }} />
-          </div>
-        </div>
+    <div id={id} className="flex flex-col w-full overflow-hidden select-none mb-[72px] last:mb-0">
+      {/* ────────────────── SECTION TITLE & DESCRIPTION ────────────────── */}
+      <div className="border-t border-border-hairline/30 pt-4 pb-2">
+        <h2 className="text-[18px] font-semibold text-foreground uppercase tracking-wider font-mono">
+          {title}
+        </h2>
+        <p className="text-[13px] text-muted-soft leading-normal mt-0.5">
+          {subtitle}
+        </p>
       </div>
-      <div className="px-3 py-2.5 bg-card border-t border-border-hairline flex items-center justify-between gap-2">
-        <div className="flex flex-col min-w-0">
-          <span className="text-xs font-medium text-foreground">{theme.name}</span>
-          <span className="text-[10px] text-muted truncate">{theme.description}</span>
-        </div>
-        {active && <Check className="w-4 h-4 text-primary shrink-0" aria-hidden="true" />}
+      <div className="border-t border-border-hairline/30 flex flex-col w-full mt-1.5">
+        {children}
       </div>
-    </button>
+    </div>
   );
 }
 
 export default function SettingsPage() {
-  const [theme, setTheme] = useState(DEFAULT_THEME_ID);
-  const [layout, setLayout] = useState<KeyboardLayoutType>("qwerty");
-  const [caret, setCaret] = useState("smooth");
-  const [font, setFont] = useState("sans");
-  const [resetOpen, setResetOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // Load configs on mount
-  useEffect(() => {
+  const query = searchQuery.toLowerCase().trim();
+
+  const handleThemeToggle = () => {
     if (typeof window !== "undefined") {
-      /* eslint-disable react-hooks/set-state-in-effect */
-      setTheme(localStorage.getItem(THEME_STORAGE_KEY) || DEFAULT_THEME_ID);
-      setLayout((localStorage.getItem("justtype_config_layout") || "qwerty") as KeyboardLayoutType);
-      setCaret(localStorage.getItem("justtype_config_caret") || "smooth");
-      setFont(localStorage.getItem("justtype_config_font") || "sans");
-      /* eslint-enable react-hooks/set-state-in-effect */
+      const current = localStorage.getItem("justtype_config_theme") || "cream";
+      const next = current === "cream" ? "charcoal" : "cream";
+      localStorage.setItem("justtype_config_theme", next);
+      document.documentElement.setAttribute("data-theme", next);
+      window.dispatchEvent(new Event("storage"));
     }
-  }, []);
-
-  const handleThemeChange = (newTheme: string) => {
-    setTheme(newTheme);
-    applyTheme(newTheme);
   };
 
-  const handleLayoutChange = (newLayout: KeyboardLayoutType) => {
-    setLayout(newLayout);
-    localStorage.setItem("justtype_config_layout", newLayout);
-  };
+  // Evaluate matches for each section to determine if its header should render
+  const showFonts = useMemo(() => {
+    return (
+      !query ||
+      [
+        "font size", "control typing scale and readability. affects typing zone only.",
+        "font family", "select typography for typing. previews display real letterforms for each typeface.",
+        "local upload", "upload custom font files (.ttf, .woff, .woff2, .otf) to cache locally in indexeddb.",
+        "live preview", "preview of past, active, and upcoming words in your current configuration."
+      ].some((text) => text.includes(query))
+    );
+  }, [query]);
 
+  const showThemes = useMemo(() => {
+    return (
+      !query ||
+      [
+        "theme palette",
+        "customize the color palette of the interface. hover to temporarily preview, click to apply.",
+        "claude cream", "charcoal dark", "midnight navy", "forest green",
+        "carbon", "dracula", "matrix", "retro", "custom"
+      ].some((text) => text.includes(query))
+    );
+  }, [query]);
 
+  const showTypingExperience = useMemo(() => {
+    return (
+      !query ||
+      [
+        "keyboard layout", "select the visual key mapping layout displayed on the test board.",
+        "indicator caret style", "choose the visual rendering style of the active typing cursor caret."
+      ].some((text) => text.includes(query))
+    );
+  }, [query]);
 
-  const handleCaretChange = (newCaret: string) => {
-    setCaret(newCaret);
-    localStorage.setItem("justtype_config_caret", newCaret);
-  };
+  const showAccessibility = useMemo(() => {
+    return (
+      !query ||
+      [
+        "high contrast mode", "increases color contrast across the user interface for better visibility.",
+        "dyslexia mode", "overrides the font family across the platform to opendyslexic to aid reading.",
+        "reduced motion", "disables interface animations and smooth caret transitions to prevent motion sickness.",
+        "large controls scale", "slightly increases the touch and click targets of form buttons and controls.",
+        "keyboard navigation shortcuts", "enables fully focusable elements and custom accessibility keyboard shortcuts.",
+        "cursor thickness", "adjust the visual width of the typing test indicator caret.",
+        "cursor speed", "adjust the transition physics speed of the typing caret."
+      ].some((text) => text.includes(query))
+    );
+  }, [query]);
 
-  const handleFontChange = (newFont: string) => {
-    setFont(newFont);
-    localStorage.setItem("justtype_config_font", newFont);
-    // Replace font-setting classes
-    const classes = Array.from(document.documentElement.classList);
-    classes.forEach((c) => {
-      if (c.startsWith("font-setting-")) {
-        document.documentElement.classList.remove(c);
-      }
-    });
-    document.documentElement.classList.add(`font-setting-${newFont}`);
-  };
+  const showVisualPreferences = useMemo(() => {
+    return (
+      !query ||
+      [
+        "flip test colors", "swaps correct and incorrect character colors on the typing test board.",
+        "colorful mode", "correctly typed characters display in the primary accent color rather than standard foreground.",
+        "focus mode", "fades out everything except the typing board (hiding navbar, footer, and stats) during active typing sessions.",
+        "minimal ui", "simplifies the interface by hiding unnecessary helper texts, layouts, and page borders.",
+        "hide live stats", "hides the real-time speed (wpm) and accuracy counters while typing.",
+        "reduce motion", "disables carets smooth transitions, character fades, and other interface animations.",
+        "blur inactive elements", "applies a subtle backdrop blur overlay on background page components.",
+        "compact controls spacing", "reduces the padding and spacing gaps of control tabs and menu lists."
+      ].some((text) => text.includes(query))
+    );
+  }, [query]);
 
-  const handleResetData = () => {
-    localStorage.clear();
-    window.location.reload();
-  };
+  const showTestExperience = useMemo(() => {
+    return (
+      !query ||
+      [
+        "show key tips", "displays shortcut key tips (e.g. [tab] to restart) at the bottom of the test area.",
+        "show caps warning", "triggers a noticeable alert if you start typing a test while caps lock is turned on.",
+        "show focus warning", "locks the interface and displays a blurry click-to-focus layer when the typing zone loses cursor focus.",
+        "show average chart line", "select what metrics to display on the chart or analytics board as average benchmarks.",
+        "live keyboard visualizer", "displays a virtual mechanical keyboard showing reactive key presses during the test."
+      ].some((text) => text.includes(query))
+    );
+  }, [query]);
 
-  const lightThemes = THEMES.filter((t) => t.appearance === "light");
-  const darkThemes = THEMES.filter((t) => t.appearance === "dark");
+  const showPerformance = useMemo(() => {
+    return (
+      !query ||
+      [
+        "framerate animation limit", "select the maximum frame rate target for the typing test caret and character transition updates.",
+        "memory logging mode", "configure how aggressively the app collects garbage, caches test history, and clears telemetry logs.",
+        "performance impact profile", "calculated cpu/ram telemetry footprint based on current framerate and logging configurations."
+      ].some((text) => text.includes(query))
+    );
+  }, [query]);
+
+  const showImportExport = useMemo(() => {
+    return (
+      !query ||
+      [
+        "export configuration", "copy your current settings json object to backup or share your preferences.",
+        "import configuration", "paste a valid justtype preferences json file below to instantly override settings."
+      ].some((text) => text.includes(query))
+    );
+  }, [query]);
+
+  const showExperimental = useMemo(() => {
+    return (
+      !query ||
+      [
+        "sub-millisecond wpm telemetry", "tracks keystroke latency timing in milliseconds rather than seconds for ultra-precise wpm stats calculation.",
+        "digraph heatmap tracker", "records and maps typing speeds between pairs of letters (digraphs) to pinpoint fingers weaknesses.",
+        "ai typing suggestions", "enables on-screen context suggestions for pacing rhythms and correction patterns."
+      ].some((text) => text.includes(query))
+    );
+  }, [query]);
+
+  const showDangerZone = useMemo(() => {
+    return (
+      !query ||
+      [
+        "reset configuration", "restores all settings, theme overrides, and typing scale preferences to their default states.",
+        "clear custom fonts", "permanently deletes all locally uploaded font family files from browser indexeddb storage.",
+        "clear theme favorites", "wipes all favorited theme shortcuts and resets active appearance to claude cream."
+      ].some((text) => text.includes(query))
+    );
+  }, [query]);
 
   return (
-    <div className="flex-1 w-full bg-background py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-[1344px] mx-auto flex flex-col gap-10">
-        <SectionHeader
-          icon={Settings}
-          title="Control Center"
-          subtitle="Customize typography, carets, and color themes. Persisted locally."
-        />
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Settings Left Column */}
-          <div className="md:col-span-2 flex flex-col gap-8">
-            {/* Theme section */}
-            <div className="bg-card border border-border-hairline rounded-lg p-6 flex flex-col gap-5">
-              <h2 className="text-lg font-serif font-normal text-foreground flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-primary" aria-hidden="true" />
-                <span>Visual Themes</span>
-              </h2>
-
-              <div className="flex flex-col gap-2">
-                <p className="text-[10px] font-mono uppercase tracking-[1.5px] text-muted-soft">Light</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {lightThemes.map((t) => (
-                    <ThemePreviewCard key={t.id} theme={t} active={theme === t.id} onSelect={() => handleThemeChange(t.id)} />
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <p className="text-[10px] font-mono uppercase tracking-[1.5px] text-muted-soft">Dark</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {darkThemes.map((t) => (
-                    <ThemePreviewCard key={t.id} theme={t} active={theme === t.id} onSelect={() => handleThemeChange(t.id)} />
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Typography Font System */}
-            <TypographySettings />
-
-            {/* Layout, Audio & Caret Options */}
-            <div className="bg-card border border-border-hairline rounded-lg p-6 flex flex-col gap-6">
-              {/* Keyboard Layout */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border-hairline">
-                <div>
-                  <h3 className="text-sm font-medium text-foreground">Keyboard Layout</h3>
-                  <p className="text-xs text-muted">Toggle mapping layout displayed on the test board.</p>
-                </div>
-                <div className="flex gap-1.5 bg-background p-1 border border-border-hairline rounded" role="radiogroup" aria-label="Keyboard layout">
-                  {["qwerty", "dvorak", "colemak"].map((lay) => (
-                    <button
-                      key={lay}
-                      role="radio"
-                      aria-checked={layout === lay}
-                      onClick={() => handleLayoutChange(lay as KeyboardLayoutType)}
-                      className={`px-3 py-1.5 text-xs font-mono rounded capitalize cursor-pointer transition-all ${
-                        layout === lay ? "bg-primary text-white font-semibold" : "text-muted hover:text-foreground"
-                      }`}
-                    >
-                      {lay}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-
-
-              {/* Caret selector */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border-hairline">
-                <div className="flex items-center gap-2">
-                  <MousePointerClick className="w-4 h-4 text-muted" aria-hidden="true" />
-                  <div>
-                    <h3 className="text-sm font-medium text-foreground">Indicator Caret</h3>
-                    <p className="text-xs text-muted">Styling of the active input cursor.</p>
-                  </div>
-                </div>
-                <div className="flex gap-1.5 bg-background p-1 border border-border-hairline rounded" role="radiogroup" aria-label="Caret style">
-                  {[
-                    { id: "smooth", label: "Line" },
-                    { id: "block", label: "Block" },
-                    { id: "underline", label: "Underline" },
-                    { id: "hidden", label: "Hidden" },
-                  ].map((c) => (
-                    <button
-                      key={c.id}
-                      role="radio"
-                      aria-checked={caret === c.id}
-                      onClick={() => handleCaretChange(c.id)}
-                      className={`px-3 py-1.5 text-xs font-mono rounded cursor-pointer transition-all ${
-                        caret === c.id ? "bg-primary text-white font-semibold" : "text-muted hover:text-foreground"
-                      }`}
-                    >
-                      {c.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Typography Face */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-2">
-                  <Type className="w-4 h-4 text-muted" aria-hidden="true" />
-                  <div>
-                    <h3 className="text-sm font-medium text-foreground">Main Typography Face</h3>
-                    <p className="text-xs text-muted">Changes the global application UI typeface.</p>
-                  </div>
-                </div>
-                <div className="flex gap-1.5 bg-background p-1 border border-border-hairline rounded" role="radiogroup" aria-label="Typeface">
-                  {[
-                    { id: "sans", label: "Sans" },
-                    { id: "serif", label: "Serif" },
-                    { id: "mono", label: "Mono" },
-                  ].map((f) => (
-                    <button
-                      key={f.id}
-                      role="radio"
-                      aria-checked={font === f.id}
-                      onClick={() => handleFontChange(f.id)}
-                      className={`px-3 py-1.5 text-xs font-mono rounded cursor-pointer transition-all ${
-                        font === f.id ? "bg-primary text-white font-semibold" : "text-muted hover:text-foreground"
-                      }`}
-                    >
-                      {f.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
+    <div className="flex-1 w-full bg-background pb-24 overflow-hidden">
+      {/* ──────────────────────── STICKY UTILITY BAR ──────────────────────── */}
+      <div className="sticky top-0 z-50 bg-background/95 border-b border-border-hairline h-16 flex items-center justify-between mb-[48px] overflow-hidden">
+        <div className="max-w-[1400px] w-[85%] mx-auto flex items-center justify-between h-full">
+          {/* Search Box (320px) */}
+          <div className="relative w-[320px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-soft" />
+            <input
+              type="text"
+              placeholder="Search settings..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-3 py-1.5 text-xs bg-card border border-border-hairline rounded-[6px] outline-none font-mono text-foreground placeholder:text-muted-soft focus:border-primary/50"
+            />
           </div>
-
-          {/* Settings Right Column (Danger zone / info) */}
-          <div className="flex flex-col gap-6">
-            {/* Live Preview Card */}
-            <div className="bg-card border border-border-hairline rounded-lg p-6 flex flex-col gap-3">
-              <h3 className="text-sm font-serif font-normal text-foreground">Sandbox Preview</h3>
-              <p className="text-xs text-muted">Interactive typography and color swatch preview.</p>
-
-              <div className="p-4 bg-background border border-border-hairline rounded font-mono text-xs flex flex-col gap-2">
-                <p className="text-muted-soft">{"/* Current config swatch */"}</p>
-                <p className="text-foreground">
-                  Theme: <span className="text-primary font-bold">{theme}</span>
-                </p>
-                <p className="text-foreground">
-                  Font: <span className="text-accent-teal">{font}</span>
-                </p>
-
-                <div className="mt-2 pt-2 border-t border-border-hairline text-[11px] leading-relaxed text-muted">
-                  The quick brown fox jumps over the lazy dog.
-                </div>
-              </div>
-            </div>
-
-            {/* Danger Zone */}
-            <div className="bg-error/5 border border-error/20 rounded-lg p-6 flex flex-col gap-4">
-              <div className="flex items-center gap-2 text-error">
-                <ShieldAlert className="w-5 h-5" aria-hidden="true" />
-                <h3 className="text-sm font-serif font-normal">Danger Zone</h3>
-              </div>
-              <p className="text-xs text-muted leading-relaxed">
-                Wiping local storage data clears all your WPM stats, digraph latency profiles, and resets configurations.
-              </p>
-              <button
-                onClick={() => setResetOpen(true)}
-                className="w-full py-2 bg-error hover:bg-error/90 text-white font-mono text-xs font-medium rounded-md transition-all-smooth cursor-pointer"
-              >
-                Clear Typing History
-              </button>
-            </div>
+          
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2 shrink-0 font-mono text-xs">
+            <button
+              type="button"
+              onClick={() => {
+                const el = document.getElementById("import-export-section");
+                if (el) el.scrollIntoView({ behavior: "auto" });
+              }}
+              className="px-2.5 py-1.5 border border-border-hairline hover:border-primary/30 rounded text-foreground transition-colors cursor-pointer"
+            >
+              Import
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const el = document.getElementById("import-export-section");
+                if (el) el.scrollIntoView({ behavior: "auto" });
+              }}
+              className="px-2.5 py-1.5 border border-border-hairline hover:border-primary/30 rounded text-foreground transition-colors cursor-pointer"
+            >
+              Export
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const el = document.getElementById("danger-zone-section");
+                if (el) el.scrollIntoView({ behavior: "auto" });
+              }}
+              className="px-2.5 py-1.5 border border-border-hairline hover:border-error/30 hover:text-error rounded text-foreground transition-colors cursor-pointer"
+            >
+              Reset
+            </button>
+            <button
+              type="button"
+              onClick={handleThemeToggle}
+              className="px-2.5 py-1.5 bg-primary text-background font-semibold rounded hover:opacity-90 transition-opacity cursor-pointer"
+            >
+              Theme Switch
+            </button>
           </div>
         </div>
       </div>
 
-      <ConfirmDialog
-        open={resetOpen}
-        danger
-        title="Wipe all local data?"
-        description="This will permanently delete all typing history, analytics, and preference configs stored in this browser. This cannot be undone."
-        confirmLabel="Wipe everything"
-        cancelLabel="Keep my data"
-        onConfirm={handleResetData}
-        onCancel={() => setResetOpen(false)}
-      />
+      {/* Main Settings Grid */}
+      <div className="max-w-[1400px] w-[85%] mx-auto flex flex-col">
+        <SettingsSection
+          id="fonts-section"
+          title="1. Fonts"
+          subtitle="Configure the typing font scale, select typing typography registry, or upload custom local webfonts."
+        >
+          {showFonts && <TypographySettings searchQuery={searchQuery} />}
+        </SettingsSection>
+
+        <SettingsSection
+          id="themes-section"
+          title="2. Themes"
+          subtitle="Browse appearance presets, toggle favorite lists, and preview colors in real-time."
+        >
+          {showThemes && <ThemeSettings searchQuery={searchQuery} />}
+        </SettingsSection>
+
+        <SettingsSection
+          id="typing-experience-section"
+          title="3. Typing Experience"
+          subtitle="Select keyboard mapping layout and configure active test cursor options."
+        >
+          {showTypingExperience && <TypingExperienceSettings searchQuery={searchQuery} />}
+        </SettingsSection>
+
+        <SettingsSection
+          id="accessibility-section"
+          title="4. Accessibility"
+          subtitle="Toggle high contrast, dyslexia fonts, large controls, reduced animations, and cursor parameters."
+        >
+          {showAccessibility && <AccessibilitySettings searchQuery={searchQuery} />}
+        </SettingsSection>
+
+        <SettingsSection
+          id="visual-preferences-section"
+          title="5. Visual Preferences"
+          subtitle="Customise focus zones, layout elements, stat visibility, and spacing densities."
+        >
+          {showVisualPreferences && <VisualPreferencesSettings searchQuery={searchQuery} />}
+        </SettingsSection>
+
+        <SettingsSection
+          id="test-experience-section"
+          title="6. Test Behavior"
+          subtitle="Configure shortcut labels, caps lock alerts, loss-of-focus warning overlay, and averages tracking."
+        >
+          {showTestExperience && <TestExperienceSettings searchQuery={searchQuery} />}
+        </SettingsSection>
+
+        <SettingsSection
+          id="performance-section"
+          title="7. Performance"
+          subtitle="Set maximum rendering refresh rates and telemetry memory footprint profiles."
+        >
+          {showPerformance && <PerformanceSettings searchQuery={searchQuery} />}
+        </SettingsSection>
+
+        <SettingsSection
+          id="import-export-section"
+          title="8. Import / Export"
+          subtitle="Copy preferences configuration JSON string or paste existing swatches to replicate settings."
+        >
+          {showImportExport && <ImportExportSettings searchQuery={searchQuery} />}
+        </SettingsSection>
+
+        <SettingsSection
+          id="experimental-section"
+          title="9. Experimental Features"
+          subtitle="Enable new features, high resolution timing metrics, and advanced user analytics."
+        >
+          {showExperimental && <ExperimentalSettings searchQuery={searchQuery} />}
+        </SettingsSection>
+
+        <SettingsSection
+          id="danger-zone-section"
+          title="10. Danger Zone"
+          subtitle="Wipe configurations, clean local files, and reset active custom properties."
+        >
+          {showDangerZone && <DangerZoneSettings searchQuery={searchQuery} />}
+        </SettingsSection>
+      </div>
     </div>
   );
 }

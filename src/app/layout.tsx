@@ -4,6 +4,7 @@ import "./globals.css";
 import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
 import Script from "next/script";
+import ThemeHandler from "@/components/ThemeHandler";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -125,6 +126,7 @@ export default function Root({
             `,
           }}
         />
+        <ThemeHandler />
         <NavBar />
         <main className="flex-1 flex flex-col w-full bg-background text-foreground transition-colors duration-300">
           {children}

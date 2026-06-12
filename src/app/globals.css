@@ -57,55 +57,28 @@
   --font-serif: "Cormorant Garamond", serif;
 
   /* Typography Settings default state values */
-  --typing-font-size: 1.55rem;
+  --typing-font-size-base: 23.8px;
+  --typing-font-size: calc(1.0 * var(--typing-font-size-base));
   --typing-font-family: var(--font-geist-mono);
-  --typing-word-gap: 0.698rem;
-  --typing-line-height: 2.403rem;
-  --typing-cursor-height: 1.597rem;
-  --typing-letter-spacing: -0.015em;
+  --typing-word-gap: 0.3em;
+  --typing-line-height: 1.7;
+  --typing-cursor-height: 1.22em;
+  --typing-letter-spacing: normal;
 }
 
-/* Charcoal Theme (Dark) */
-:root[data-theme="charcoal"] {
-  --background: #121110;
-  --foreground: #faf9f5;
-  --card: #1a1917;
-  --card-elevated: #252320;
-  --primary: #cc785c;
-  --primary-hover: #a9583e;
-  --primary-disabled: #3d3b37;
-  --ink: #faf9f5;
-  --muted: #8e8b82;
-  --muted-soft: #6c6a64;
-  --border-hairline: #2a2926;
-  --accent-teal: #5db8a6;
-  --accent-amber: #e8a55a;
-  --success: #5db872;
-  --warning: #d4a017;
-  --error: #c64545;
+@media (min-width: 768px) {
+  :root {
+    --typing-font-size-base: 37.4px;
+  }
 }
 
-/* Midnight Theme (Deep Navy) */
-:root[data-theme="midnight"] {
-  --background: #020617;
-  --foreground: #f1f5f9;
-  --card: #0f172a;
-  --card-elevated: #1e293b;
-  --primary: #60a5fa;
-  --primary-rgb: 96, 165, 250;
-  --primary-hover: #3b82f6;
-  --primary-disabled: #0f172a;
-  --ink: #f1f5f9;
-  --muted: #94a3b8;
-  --muted-soft: #64748b;
-  --border-hairline: #1e293b;
-  --accent-teal: #2dd4bf;
-  --accent-amber: #fbbf24;
-  --success: #4ade80;
-  --warning: #fbbf24;
-  --error: #f43f5e;
+@media (min-width: 1024px) {
+  :root {
+    --typing-font-size-base: 40.8px;
+  }
 }
 
+/* Midnight Theme Special Effects (Stars & Glow) */
 :root[data-theme="midnight"] body {
   position: relative;
   overflow-x: hidden;
@@ -142,30 +115,10 @@
   left: 100px;
   width: 100%;
   height: 100%;
-  background: radial-gradient(circle at 80% 20%, #60a5fa05 0%, transparent 40%);
+  background: radial-gradient(circle at 80% 20%, var(--primary) 0%, transparent 40%);
+  opacity: 0.05;
   pointer-events: none;
   z-index: -1;
-}
-
-/* Forest Theme (Dark Evergreen) */
-:root[data-theme="forest"] {
-  --background: #052e16;
-  --foreground: #f0fdf4;
-  --card: #064e3b;
-  --card-elevated: #065f46;
-  --primary: #4ade80;
-  --primary-rgb: 74, 222, 128;
-  --primary-hover: #22c55e;
-  --primary-disabled: #064e3b;
-  --ink: #f0fdf4;
-  --muted: #a7f3d0;
-  --muted-soft: #6ee7b7;
-  --border-hairline: #065f46;
-  --accent-teal: #34d399;
-  --accent-amber: #f59e0b;
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --error: #ef4444;
 }
 
 /* Apply chosen font families based on setting classes */
@@ -177,36 +130,6 @@
 }
 .font-setting-mono {
   font-family: var(--font-geist-mono);
-}
-
-/* Landing Page Theme Restrictions (Only Black & White) */
-:root.is-landing-page[data-theme="midnight"],
-:root.is-landing-page[data-theme="forest"] {
-  --background: #121110;
-  --foreground: #faf9f5;
-  --card: #1a1917;
-  --card-elevated: #252320;
-  --primary: #cc785c;
-  --primary-hover: #a9583e;
-  --primary-disabled: #3d3b37;
-  --ink: #faf9f5;
-  --muted: #8e8b82;
-  --muted-soft: #6c6a64;
-  --border-hairline: #2a2926;
-  --accent-teal: #5db8a6;
-  --accent-amber: #e8a55a;
-  --success: #5db872;
-  --warning: #d4a017;
-  --error: #c64545;
-}
-
-/* Disable Midnight effects on Landing Page */
-:root.is-landing-page[data-theme="midnight"] body {
-  background-image: none;
-}
-:root.is-landing-page[data-theme="midnight"] body::before,
-:root.is-landing-page[data-theme="midnight"] body::after {
-  display: none;
 }
 
 body {
@@ -371,5 +294,81 @@ body {
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
 }
+
+/* Centralized Settings System CSS Overrides */
+:root {
+  --cursor-thickness: 1.5px;
+  --cursor-speed: 0.04s;
+  --fps-limit: none;
+}
+
+/* 1. Flip Colors */
+html.visual-flip-colors .text-foreground {
+  color: var(--muted) !important;
+  font-weight: normal !important;
+}
+html.visual-flip-colors .text-muted-soft\/85 {
+  color: var(--foreground) !important;
+  opacity: 1 !important;
+}
+html.visual-flip-colors .text-muted-soft\/60 {
+  color: var(--foreground) !important;
+  opacity: 0.75 !important;
+}
+
+/* 2. Colorful Mode */
+html.visual-colorful-mode .text-foreground {
+  color: var(--primary) !important;
+}
+
+/* 3. Focus Mode */
+html.visual-focus-mode.is-typing nav,
+html.visual-focus-mode.is-typing footer {
+  opacity: 0.02 !important;
+  pointer-events: none !important;
+  transition: opacity 160ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* 4. Hide Statistics */
+html.visual-hide-stats .live-stats-bar {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
+/* 5. Reduce Motion */
+html.visual-reduce-motion *,
+html.visual-reduce-motion::before,
+html.visual-reduce-motion::after {
+  transition-duration: 0s !important;
+  animation-duration: 0s !important;
+  animation-iteration-count: 1 !important;
+  scroll-behavior: auto !important;
+}
+
+/* 6. Blur Background */
+html.visual-blur-bg .settings-side-preview {
+  backdrop-filter: blur(8px) !important;
+}
+
+/* 7. Accessibility High Contrast */
+html.accessibility-high-contrast {
+  filter: contrast(1.2) !important;
+}
+
+/* 8. Accessibility Dyslexia Mode */
+html.accessibility-dyslexia,
+html.accessibility-dyslexia * {
+  font-family: 'OpenDyslexic', sans-serif !important;
+}
+
+/* 9. Large Controls */
+html.accessibility-large-controls input[type="range"] {
+  height: 8px !important;
+}
+html.accessibility-large-controls button {
+  font-size: 105% !important;
+}
+
 
 

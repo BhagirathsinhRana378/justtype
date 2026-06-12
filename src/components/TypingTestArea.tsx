@@ -161,7 +161,10 @@ export default function TypingTestArea({
       <div
         ref={containerRef}
         onClick={focusInput}
-        className="w-full relative cursor-text select-none outline-none overflow-hidden h-[180px] md:h-[240px] lg:h-[268px] py-4"
+        className="w-full relative cursor-text select-none outline-none overflow-hidden py-4"
+        style={{
+          height: "calc(3 * var(--typing-font-size) * var(--typing-line-height) + 2rem)",
+        }}
       >
         {/* Simple physical click-to-focus overlay */}
         {!isFocused && status !== "completed" && status !== "paused" && (
