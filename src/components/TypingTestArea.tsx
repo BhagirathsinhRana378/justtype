@@ -7,11 +7,12 @@ import Word from "./Word";
 interface TypingTestAreaProps {
   words: string[];
   typedInput: string;
-  status: "idle" | "typing" | "completed";
+  status: "idle" | "typing" | "paused" | "completed";
   caretType: CaretType;
   layout: KeyboardLayoutType;
   registerKeystroke: (char: string) => void;
   restartTest: () => void;
+  resumeTest?: () => void;
 }
 
 export default function TypingTestArea({
@@ -21,6 +22,7 @@ export default function TypingTestArea({
   caretType,
   registerKeystroke,
   restartTest,
+  resumeTest,
 }: TypingTestAreaProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -149,10 +151,25 @@ export default function TypingTestArea({
         className="w-full relative cursor-text select-none outline-none overflow-hidden h-[180px] md:h-[240px] lg:h-[268px] py-4"
       >
         {/* Simple physical click-to-focus overlay */}
-        {!isFocused && status !== "completed" && (
+        {!isFocused && status !== "completed" && status !== "paused" && (
           <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-20 transition-opacity duration-200">
             <span className="text-muted-soft text-sm font-mono tracking-widest select-none bg-background px-5 py-2.5 border border-border-hairline rounded-md shadow-xs">
               [ click to focus ]
+            </span>
+          </div>
+        )}
+
+        {/* Paused Overlay */}
+        {status === "paused" && (
+          <div 
+            onClick={() => {
+              if (resumeTest) resumeTest();
+              focusInput();
+            }}
+            className="absolute inset-0 bg-background/75 backdrop-blur-[2px] flex items-center justify-center z-30 transition-all duration-200 cursor-pointer"
+          >
+            <span className="text-primary text-sm font-mono tracking-widest select-none bg-card px-6 py-3 border border-primary/20 rounded-md shadow-md hover:bg-card-elevated transition-colors duration-200 animate-[pulse_1.5s_cubic-bezier(0.4,0,0.6,1)_infinite]">
+              [ paused - click to continue ]
             </span>
           </div>
         )}

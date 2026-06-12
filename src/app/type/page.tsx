@@ -140,7 +140,8 @@ export default function TypePage() {
     setCaretType,
     setLayout,
     restartTest,
-    registerKeystroke
+    registerKeystroke,
+    resumeTest
   } = useTypingTest();
 
   const [pressedKeys, setPressedKeys] = useState<string[]>([]);
@@ -746,6 +747,7 @@ export default function TypePage() {
                 layout={layout}
                 registerKeystroke={registerKeystroke}
                 restartTest={restartTest}
+                resumeTest={resumeTest}
               />
             </div>
 

@@ -46,7 +46,7 @@ export function useTypingTest() {
   
   const [words, setWords] = useState<string[]>([]);
   const [typedInput, setTypedInput] = useState<string>("");
-  const [status, setStatus] = useState<"idle" | "typing" | "completed">("idle");
+  const [status, setStatus] = useState<"idle" | "typing" | "paused" | "completed">("idle");
   const [timeLeft, setTimeLeft] = useState<number>(30);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [rawMistakes, setRawMistakes] = useState<number>(0);
@@ -225,6 +225,66 @@ export function useTypingTest() {
     saveSession(session);
   }, [words, mode, layout]);
 
+  const startTimerInterval = useCallback((initialStartTime?: number) => {
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+    }
+    
+    if (initialStartTime) {
+      startTimeRef.current = initialStartTime;
+    }
+
+    timerIntervalRef.current = setInterval(() => {
+      const currentTime = Date.now();
+      // Pause if inactive for 3 seconds (3000ms)
+      if (currentTime - lastKeyTimeRef.current >= 3000) {
+        if (timerIntervalRef.current) {
+          clearInterval(timerIntervalRef.current);
+          timerIntervalRef.current = null;
+        }
+        setStatus("paused");
+        return;
+      }
+
+      if (mode === "time") {
+        setTimeLeft((prev) => {
+          const nextTime = prev - 1;
+          setElapsedTime((el) => {
+            const nextEl = el + 1;
+            if (nextTime <= 0) {
+              setTypedInput((input) => {
+                completeTest(input, nextEl);
+                return input;
+              });
+              return nextEl;
+            }
+            return nextEl;
+          });
+          return nextTime;
+        });
+      } else {
+        setElapsedTime((el) => el + 1);
+      }
+    }, 1000);
+  }, [mode, completeTest]);
+
+  const pauseTest = useCallback(() => {
+    if (status !== "typing") return;
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
+    setStatus("paused");
+  }, [status]);
+
+  const resumeTest = useCallback(() => {
+    if (status !== "paused") return;
+    setStatus("typing");
+    const now = Date.now();
+    lastKeyTimeRef.current = now;
+    startTimerInterval();
+  }, [status, startTimerInterval]);
+
   // Handle typing key presses
   const registerKeystroke = useCallback((char: string) => {
     if (status === "completed") return;
@@ -232,47 +292,19 @@ export function useTypingTest() {
     const targetText = words.join(" ");
     const now = Date.now();
     
-    // Keystroke sound trigger disabled to silence click sound
-    /*
-    if (char === "Backspace") {
-      playKeySound(soundType, char, true);
-    } else if (char.length === 1) {
-      const targetChar = targetText[typedInput.length] || "";
-      playKeySound(soundType, char, char === targetChar);
-    }
-    */
-
-    // Initial state trigger
+    // Initial state trigger or resume
     if (status === "idle") {
       setStatus("typing");
       startTimeRef.current = now;
       lastKeyTimeRef.current = now;
-      
       if (mode === "time") {
         setTimeLeft(limit);
-        
-        timerIntervalRef.current = setInterval(() => {
-          setTimeLeft((prev) => {
-            const nextTime = prev - 1;
-            setElapsedTime((el) => {
-              const nextEl = el + 1;
-              if (nextTime <= 0) {
-                setTypedInput((input) => {
-                  completeTest(input, nextEl);
-                  return input;
-                });
-                return nextEl;
-              }
-              return nextEl;
-            });
-            return nextTime;
-          });
-        }, 1000);
-      } else {
-        timerIntervalRef.current = setInterval(() => {
-          setElapsedTime((el) => el + 1);
-        }, 1000);
       }
+      startTimerInterval(now);
+    } else if (status === "paused") {
+      setStatus("typing");
+      lastKeyTimeRef.current = now;
+      startTimerInterval();
     }
 
     // Backspace logic
@@ -310,7 +342,7 @@ export function useTypingTest() {
 
       return nextInput;
     });
-  }, [status, words, mode, limit, completeTest]);
+  }, [status, words, mode, limit, completeTest, startTimerInterval]);
 
   // Periodic calculator for live graph history (every second)
   useEffect(() => {
@@ -333,6 +365,7 @@ export function useTypingTest() {
   return {
     mode, limit, soundType, caretType, layout, words, typedInput, status, timeLeft, elapsedTime, rawMistakes, wpm, accuracy, history,
     getTelemetry: () => telemetryRef.current,
-    setMode: updateMode, setLimit: updateLimit, setSoundType: updateSoundType, setCaretType: updateCaretType, setLayout: updateLayout, restartTest, registerKeystroke
+    setMode: updateMode, setLimit: updateLimit, setSoundType: updateSoundType, setCaretType: updateCaretType, setLayout: updateLayout, restartTest, registerKeystroke,
+    pauseTest, resumeTest
   };
 }
