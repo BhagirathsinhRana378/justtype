@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { FontDef } from "@/lib/fontRegistry";
 import { loadFont } from "@/lib/fontLoader";
 
@@ -11,24 +11,19 @@ interface FontCardProps {
 }
 
 const FontCard: React.FC<FontCardProps> = ({ font, selected, onClick }) => {
-  const [hovered, setHovered] = useState(false);
-
-  // Lazy load font on hover/selected
+  // Load font on mount to render its actual font family immediately
   useEffect(() => {
-    if (selected || hovered) {
-      loadFont(font);
-    }
-  }, [selected, hovered, font]);
+    loadFont(font);
+  }, [font]);
 
   return (
     <button
       type="button"
       onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
       className={`h-[40px] px-3 w-full rounded-[6px] border text-center transition-colors cursor-pointer select-none flex items-center justify-center font-medium ${
         selected
           ? "border-transparent bg-primary text-background font-semibold"
-          : "border-border-hairline bg-card/45 text-muted hover:bg-card-elevated hover:text-foreground hover:-translate-y-[0.5px]"
+          : "border-border-hairline bg-card/45 text-muted hover:bg-card hover:text-foreground"
       }`}
       style={{
         fontFamily: font.family,

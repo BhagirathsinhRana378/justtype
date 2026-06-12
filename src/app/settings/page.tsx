@@ -119,7 +119,7 @@ export default function SettingsPage() {
 
   return (
     <div className="flex-1 w-full bg-background py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto flex flex-col gap-10">
+      <div className="max-w-[1344px] mx-auto flex flex-col gap-10">
         <SectionHeader
           icon={Settings}
           title="Control Center"

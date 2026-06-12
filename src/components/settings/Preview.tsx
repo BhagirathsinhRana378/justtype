@@ -7,18 +7,10 @@ export default function Preview() {
   const { fontFamily, fontSize } = useTypography();
 
   return (
-    <div className="bg-card border border-border-hairline rounded-xl p-6 flex flex-col gap-4 w-full">
-      <div className="flex items-center justify-between w-full">
-        <h4 className="text-xs font-bold font-mono text-muted-soft uppercase tracking-wider">
-          Typing Preview
-        </h4>
-        <span className="text-[10px] font-mono text-muted-soft bg-background px-2.5 py-1 rounded-lg border border-border-hairline">
-          {fontFamily} @ {fontSize.toFixed(2)}×
-        </span>
-      </div>
-
+    <div className="w-full flex flex-col gap-2">
+      {/* Live typing board rendering with active font variables */}
       <div 
-        className="p-8 bg-background border border-border-hairline/80 rounded-xl flex items-center justify-center overflow-hidden min-h-[130px] select-none w-full"
+        className="p-6 bg-card/45 border border-border-hairline/40 rounded-[6px] flex items-center justify-center overflow-hidden min-h-[110px] select-none w-full"
         style={{
           fontFamily: "var(--typing-font-family)",
           fontSize: "var(--typing-font-size)",
@@ -35,15 +27,12 @@ export default function Preview() {
             speed
           </span>
 
-          {/* Active Word: "focus" (Accent Cursor inside) */}
+          {/* Active Word: "focus" (Accent Cursor) */}
           <span 
             className="inline-flex relative"
             style={{ marginRight: "var(--typing-word-gap)" }}
           >
-            {/* Typed part of active word */}
             <span className="text-foreground">fo</span>
-            
-            {/* Accent Cursor (Caret) positioned exactly after 'fo' using font-relative ch units */}
             <span 
               className="absolute bg-primary"
               style={{
@@ -54,8 +43,6 @@ export default function Preview() {
                 zIndex: 10,
               }}
             />
-
-            {/* Upcoming part of active word */}
             <span className="text-muted-soft/85">cus</span>
           </span>
 

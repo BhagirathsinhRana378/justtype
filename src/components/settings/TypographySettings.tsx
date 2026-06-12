@@ -4,6 +4,7 @@ import React from "react";
 import { useTypography } from "@/hooks/useTypography";
 import FontPicker from "./FontPicker";
 import LocalFont from "./LocalFont";
+import Preview from "./Preview";
 
 export default function TypographySettings() {
   const { fontSize, updateFontSize } = useTypography();
@@ -53,7 +54,7 @@ export default function TypographySettings() {
       </div>
 
       {/* Row 3: Local Font */}
-      <div className="grid grid-cols-1 lg:grid-cols-[26fr_74fr] gap-10 py-6 w-full overflow-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-[26fr_74fr] gap-10 py-6 border-b border-border-hairline/40 w-full overflow-hidden">
         <div className="flex flex-col gap-1 w-full">
           <h3 className="text-sm font-semibold text-foreground">Local Font</h3>
           <p className="text-xs text-muted leading-relaxed">
@@ -62,6 +63,19 @@ export default function TypographySettings() {
         </div>
         <div className="w-full min-w-0">
           <LocalFont />
+        </div>
+      </div>
+
+      {/* Row 4: Live Simulation */}
+      <div className="grid grid-cols-1 lg:grid-cols-[26fr_74fr] gap-10 py-6 w-full overflow-hidden">
+        <div className="flex flex-col gap-1 w-full">
+          <h3 className="text-sm font-semibold text-foreground">Live Simulation</h3>
+          <p className="text-xs text-muted leading-relaxed">
+            Preview of past, active, and upcoming words in your current configuration.
+          </p>
+        </div>
+        <div className="w-full min-w-0">
+          <Preview />
         </div>
       </div>
     </div>
