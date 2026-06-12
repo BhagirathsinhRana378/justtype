@@ -108,7 +108,7 @@ export default function ProfilePage() {
         name: "Custom Warrior",
         desc: "Remediation student",
         criteria: "Complete 5 tests in AI Coach custom mode",
-        unlocked: sessions.filter((s) => s.mode === "custom").length >= 5,
+        unlocked: sessions.filter((s) => s.mode === "zen" || s.mode === "custom").length >= 5,
       },
       {
         id: "night_owl",

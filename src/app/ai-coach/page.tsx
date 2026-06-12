@@ -339,7 +339,7 @@ export default function AICoachPage() {
                     className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg shadow-md transition-all-smooth"
                     onClick={() => {
                       if (typeof window !== "undefined") {
-                        localStorage.setItem("justtype_config_mode", "custom");
+                        localStorage.setItem("justtype_config_mode", "zen");
                       }
                     }}
                   >

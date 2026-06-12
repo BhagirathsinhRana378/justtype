@@ -104,7 +104,10 @@ export default function Root({
       suppressHydrationWarning
     >
       <head />
-      <body className="min-h-full flex flex-col bg-background text-foreground font-sans selection:bg-primary selection:text-white transition-colors duration-300">
+      <body 
+        className="min-h-full flex flex-col bg-background text-foreground font-sans selection:bg-primary selection:text-white transition-colors duration-300"
+        suppressHydrationWarning
+      >
         <Script
           id="theme-strategy"
           strategy="beforeInteractive"

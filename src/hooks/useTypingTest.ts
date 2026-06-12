@@ -58,7 +58,7 @@ const PRESET_QUOTES = [
   "Can you type 100% correctly? Try: 123 + 456 = 579, WPM (words per minute), and W&M!"
 ];
 
-export type TestMode = "time" | "words" | "quote" | "custom";
+export type TestMode = "time" | "words" | "quote" | "zen" | "custom";
 export type CaretType = "block" | "smooth" | "underline" | "hidden";
 export type KeyboardLayoutType = "qwerty" | "dvorak" | "colemak";
 
@@ -106,6 +106,23 @@ export function useTypingTest() {
   }, []);
 
   // Sync config changes to localStorage
+  // Helper to determine if the test has a time limit
+  const checkIfTimeMode = useCallback(() => {
+    if (mode === "time") return { isTime: true, timeLimit: limit };
+    if (mode === "custom" && typeof window !== "undefined") {
+      const customSettingsRaw = localStorage.getItem("justtype_custom_settings");
+      if (customSettingsRaw) {
+        try {
+          const settings = JSON.parse(customSettingsRaw);
+          if (settings.limitType === "time") {
+            return { isTime: true, timeLimit: Number(settings.limitValue) || 30 };
+          }
+        } catch (e) {}
+      }
+    }
+    return { isTime: false, timeLimit: 0 };
+  }, [mode, limit]);
+
   const updateMode = (newMode: TestMode) => {
     setMode(newMode);
     if (typeof window !== "undefined") {
@@ -148,11 +165,119 @@ export function useTypingTest() {
       return quote.split(" ");
     }
     
-    if (mode === "custom") {
+    if (mode === "zen") {
       // AI Coach generated words targeting weak keys, hand imbalances, and other workouts
       const sessions = getSavedSessions();
       const workoutType = typeof window !== "undefined" ? localStorage.getItem("justtype_workout_type") || "all_rounder" : "all_rounder";
       return generateAdaptiveWords(sessions, 25, workoutType);
+    }
+
+    if (mode === "custom") {
+      if (typeof window !== "undefined") {
+        const customText = localStorage.getItem("justtype_custom_text") || "The quick brown fox jumps over the lazy dog";
+        const customSettingsRaw = localStorage.getItem("justtype_custom_settings");
+        let settings = {
+          mode: "simple",
+          limitType: "infinite",
+          limitValue: 25,
+          delimiter: "space",
+          removeZeroWidth: true,
+          removeFancyTypography: true,
+          replaceControlChars: true,
+          replaceNewlines: "space",
+          wordsFilter: ""
+        };
+        if (customSettingsRaw) {
+          try {
+            settings = { ...settings, ...JSON.parse(customSettingsRaw) };
+          } catch (e) {}
+        }
+
+        let processedText = customText;
+
+        if (settings.removeZeroWidth) {
+          processedText = processedText.replace(/[\u200B-\u200D\uFEFF]/g, "");
+        }
+
+        if (settings.replaceControlChars) {
+          processedText = processedText.replace(/\t/g, "    ").replace(/\r/g, "");
+        }
+
+        if (settings.replaceNewlines === "space") {
+          processedText = processedText.replace(/\n+/g, " ");
+        } else if (settings.replaceNewlines === "period_space") {
+          processedText = processedText.split("\n").map(line => {
+            const trimmed = line.trim();
+            if (!trimmed) return "";
+            if (/[.!?]$/.test(trimmed)) return trimmed;
+            return trimmed + ".";
+          }).filter(Boolean).join(" ");
+        }
+
+        if (settings.removeFancyTypography) {
+          processedText = processedText
+            .replace(/[\u2018\u2019]/g, "'")
+            .replace(/[\u201C\u201D]/g, '"')
+            .replace(/\u2013/g, "-")
+            .replace(/\u2014/g, "--")
+            .replace(/\u2026/g, "...");
+        }
+
+        let wordsArr: string[] = [];
+        if (settings.delimiter === "pipe") {
+          wordsArr = processedText.split("|").map(w => w.trim()).filter(Boolean);
+        } else if (settings.delimiter === "newline") {
+          wordsArr = processedText.split("\n").map(w => w.trim()).filter(Boolean);
+        } else {
+          wordsArr = processedText.split(/\s+/).filter(Boolean);
+        }
+
+        if (settings.wordsFilter === "lowercase") {
+          wordsArr = wordsArr.map(w => w.toLowerCase());
+        } else if (settings.wordsFilter === "uppercase") {
+          wordsArr = wordsArr.map(w => w.toUpperCase());
+        } else if (settings.wordsFilter === "no_punctuation") {
+          wordsArr = wordsArr.map(w => w.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"']/g, "")).filter(Boolean);
+        } else if (settings.wordsFilter === "no_numbers") {
+          wordsArr = wordsArr.map(w => w.replace(/\d+/g, "")).filter(Boolean);
+        }
+
+        if (settings.mode === "shuffle") {
+          wordsArr = [...wordsArr];
+          for (let i = wordsArr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [wordsArr[i], wordsArr[j]] = [wordsArr[j], wordsArr[i]];
+          }
+        } else if (settings.mode === "random") {
+          const sampled: string[] = [];
+          const targetCount = settings.limitType === "words" ? settings.limitValue : 50;
+          for (let i = 0; i < targetCount; i++) {
+            sampled.push(wordsArr[Math.floor(Math.random() * wordsArr.length)]);
+          }
+          wordsArr = sampled;
+        }
+
+        if (settings.limitType === "words" && settings.mode !== "random") {
+          const targetLimit = settings.limitValue;
+          if (wordsArr.length < targetLimit) {
+            const repeated: string[] = [];
+            while (repeated.length < targetLimit) {
+              repeated.push(...wordsArr);
+            }
+            wordsArr = repeated.slice(0, targetLimit);
+          } else {
+            wordsArr = wordsArr.slice(0, targetLimit);
+          }
+        } else if (settings.limitType === "time") {
+          const repeated: string[] = [];
+          while (repeated.length < 100) {
+            repeated.push(...wordsArr);
+          }
+          wordsArr = repeated.slice(0, 100);
+        }
+
+        return wordsArr.length > 0 ? wordsArr : ["The", "quick", "brown", "fox"];
+      }
     }
 
     // Default 'time' or 'words' mode
@@ -183,14 +308,15 @@ export function useTypingTest() {
     telemetryRef.current = [];
     lastKeyTimeRef.current = 0;
     
-    if (mode === "time") {
-      setTimeLeft(limit);
+    const { isTime, timeLimit } = checkIfTimeMode();
+    if (isTime) {
+      setTimeLeft(timeLimit);
       setElapsedTime(0);
     } else {
       setTimeLeft(0);
       setElapsedTime(0);
     }
-  }, [mode, limit, generateWordsList]);
+  }, [mode, limit, generateWordsList, checkIfTimeMode]);
 
   // Load initial words
   useEffect(() => {
@@ -270,7 +396,8 @@ export function useTypingTest() {
         return;
       }
 
-      if (mode === "time") {
+      const { isTime } = checkIfTimeMode();
+      if (isTime) {
         setTimeLeft((prev) => {
           const nextTime = prev - 1;
           setElapsedTime((el) => {
@@ -290,7 +417,7 @@ export function useTypingTest() {
         setElapsedTime((el) => el + 1);
       }
     }, 1000);
-  }, [mode, completeTest]);
+  }, [checkIfTimeMode, completeTest]);
 
   const pauseTest = useCallback(() => {
     if (status !== "typing") return;
@@ -321,8 +448,9 @@ export function useTypingTest() {
       setStatus("typing");
       startTimeRef.current = now;
       lastKeyTimeRef.current = now;
-      if (mode === "time") {
-        setTimeLeft(limit);
+      const { isTime, timeLimit } = checkIfTimeMode();
+      if (isTime) {
+        setTimeLeft(timeLimit);
       }
       startTimerInterval(now);
     } else if (status === "paused") {
@@ -355,7 +483,8 @@ export function useTypingTest() {
 
       if (!isCorrect) setRawMistakes((m) => m + 1);
 
-      if (mode !== "time" && nextInput.length >= targetText.length) {
+      const { isTime } = checkIfTimeMode();
+      if (!isTime && nextInput.length >= targetText.length) {
         setTimeout(() => {
           setElapsedTime((el) => {
             completeTest(nextInput, el);
@@ -366,7 +495,7 @@ export function useTypingTest() {
 
       return nextInput;
     });
-  }, [status, words, mode, limit, completeTest, startTimerInterval]);
+  }, [status, words, completeTest, startTimerInterval, checkIfTimeMode]);
 
   // Periodic calculator for live graph history (every second)
   useEffect(() => {

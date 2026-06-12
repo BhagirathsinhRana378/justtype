@@ -16,7 +16,13 @@ import {
   CheckCircle2,
   TrendingUp,
   HandMetal,
-  Info
+  Info,
+  Wrench,
+  X,
+  Save,
+  FileUp,
+  Trash2,
+  Play
 } from "lucide-react";
 import { calculateFocusScore, getSavedSessions } from "@/utils/aiEngine";
 import dynamic from "next/dynamic";
@@ -120,6 +126,33 @@ const getAiCoachFeedback = (wpm: number, accuracy: number, focus: number, misspe
 
 // ScoreChart placeholder removed since we use dynamic ResultsChart component
 
+const PRESETS = [
+  {
+    name: "JavaScript Async/Await",
+    text: "async function fetchUser(id) {\n  try {\n    const res = await fetch(`/api/users/${id}`);\n    if (!res.ok) throw new Error('Not found');\n    const data = await res.json();\n    return data;\n  } catch (err) {\n    console.error(err);\n  }\n}"
+  },
+  {
+    name: "CSS Grid Centering",
+    text: ".container {\n  display: grid;\n  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));\n  gap: 1.5rem;\n  justify-content: center;\n  align-items: center;\n}"
+  },
+  {
+    name: "Git Commits Sequence",
+    text: "git checkout -b feature/auth\ngit add .\ngit commit -m \"feat: implement OAuth2 flow with Google login\"\ngit push origin feature/auth\ngit checkout main\ngit merge feature/auth"
+  },
+  {
+    name: "HTML Boilerplate",
+    text: "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>Document</title>\n</head>\n<body>\n  <main id=\"app\"></main>\n</body>\n</html>"
+  },
+  {
+    name: "English Pangrams",
+    text: "The quick brown fox jumps over the lazy dog.\nPack my box with five dozen liquor jugs.\nJackdaws love my big sphinx of quartz.\nHow vexingly quick daft zebras jump!"
+  },
+  {
+    name: "Scientific Terms",
+    text: "mitochondria photosynthesis chromatography electromagnetism quantum thermodynamics neuroscience astrophysics biochemistry crystallography nanotechnology"
+  }
+];
+
 export default function TypePage() {
   const {
     mode,
@@ -146,6 +179,105 @@ export default function TypePage() {
 
   const [pressedKeys, setPressedKeys] = useState<string[]>([]);
   const [heatmapData, setHeatmapData] = useState<Record<string, { errorRate: number; avgLatency: number; score: number }>>({});
+
+  // Custom text mode state variables
+  const [showCustomModal, setShowCustomModal] = useState(false);
+  const [customText, setCustomText] = useState("The quick brown fox jumps over the lazy dog");
+  const [customMode, setCustomMode] = useState<"simple" | "repeat" | "shuffle" | "random">("simple");
+  const [customLimitType, setCustomLimitType] = useState<"words" | "time" | "infinite">("infinite");
+  const [customLimitValue, setCustomLimitValue] = useState(25);
+  const [customDelimiter, setCustomDelimiter] = useState<"space" | "pipe" | "newline">("space");
+  const [removeZeroWidth, setRemoveZeroWidth] = useState(true);
+  const [removeFancyTypography, setRemoveFancyTypography] = useState(true);
+  const [replaceControlChars, setReplaceControlChars] = useState(true);
+  const [replaceNewlines, setReplaceNewlines] = useState<"space" | "period_space" | "none">("space");
+  const [wordsFilter, setWordsFilter] = useState<"lowercase" | "uppercase" | "no_punctuation" | "no_numbers" | "">("");
+  
+  // Saved texts list
+  const [savedTexts, setSavedTexts] = useState<{ id: string; name: string; text: string }[]>([]);
+  const [newSaveName, setNewSaveName] = useState("");
+
+  // Load custom settings on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedText = localStorage.getItem("justtype_custom_text");
+      if (savedText) setCustomText(savedText);
+
+      const savedSettingsRaw = localStorage.getItem("justtype_custom_settings");
+      if (savedSettingsRaw) {
+        try {
+          const settings = JSON.parse(savedSettingsRaw);
+          if (settings.mode) setCustomMode(settings.mode);
+          if (settings.limitType) setCustomLimitType(settings.limitType);
+          if (settings.limitValue) setCustomLimitValue(Number(settings.limitValue));
+          if (settings.delimiter) setCustomDelimiter(settings.delimiter);
+          if (settings.removeZeroWidth !== undefined) setRemoveZeroWidth(settings.removeZeroWidth);
+          if (settings.removeFancyTypography !== undefined) setRemoveFancyTypography(settings.removeFancyTypography);
+          if (settings.replaceControlChars !== undefined) setReplaceControlChars(settings.replaceControlChars);
+          if (settings.replaceNewlines) setReplaceNewlines(settings.replaceNewlines);
+          if (settings.wordsFilter !== undefined) setWordsFilter(settings.wordsFilter);
+        } catch (e) {}
+      }
+
+      const savedListRaw = localStorage.getItem("justtype_saved_texts");
+      if (savedListRaw) {
+        try {
+          setSavedTexts(JSON.parse(savedListRaw));
+        } catch (e) {}
+      } else {
+        const defaultList = [
+          { id: "default_1", name: "The Quick Brown Fox", text: "The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs." },
+          { id: "default_2", name: "JS Arrow Functions", text: "const sum = (a, b) => a + b;\nconst multiply = (a, b) => {\n  return a * b;\n};" }
+        ];
+        setSavedTexts(defaultList);
+        localStorage.setItem("justtype_saved_texts", JSON.stringify(defaultList));
+      }
+    }
+  }, []);
+
+  const handleApplyCustomSettings = () => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("justtype_custom_text", customText);
+      localStorage.setItem("justtype_custom_settings", JSON.stringify({
+        mode: customMode,
+        limitType: customLimitType,
+        limitValue: customLimitValue,
+        delimiter: customDelimiter,
+        removeZeroWidth,
+        removeFancyTypography,
+        replaceControlChars,
+        replaceNewlines,
+        wordsFilter
+      }));
+    }
+    setShowCustomModal(false);
+    restartTest();
+  };
+
+  const handleSaveText = () => {
+    if (!customText.trim()) return;
+    const name = newSaveName.trim() || `Preset ${savedTexts.length + 1}`;
+    const newItem = {
+      id: Math.random().toString(36).substr(2, 9),
+      name,
+      text: customText
+    };
+    const updated = [...savedTexts, newItem];
+    setSavedTexts(updated);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("justtype_saved_texts", JSON.stringify(updated));
+    }
+    setNewSaveName("");
+  };
+
+  const handleDeleteText = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updated = savedTexts.filter(t => t.id !== id);
+    setSavedTexts(updated);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("justtype_saved_texts", JSON.stringify(updated));
+    }
+  };
 
   // Unique Killer Metrics: Acceleration Profile
   const accelerationProfile = useMemo(() => {
@@ -579,7 +711,7 @@ export default function TypePage() {
         <>
           {/* 1. COMPACT CONTROLS TOOLBAR */}
           <div 
-            className={`w-full max-w-[850px] flex items-center justify-between bg-card/25 border border-border-hairline rounded-[12px] px-6 h-[52px] font-mono text-sm text-muted gap-4 overflow-x-auto whitespace-nowrap scrollbar-none transition-all duration-300 shrink-0 ${
+            className={`w-full max-w-[850px] flex items-center justify-between bg-card/25 border border-border-hairline rounded-[12px] px-4 h-[52px] font-mono text-sm text-muted gap-2 overflow-x-auto whitespace-nowrap scrollbar-none transition-all duration-300 shrink-0 ${
               isFocusMode ? "opacity-15 pointer-events-none" : "opacity-100"
             }`}
           >
@@ -587,51 +719,63 @@ export default function TypePage() {
             <div className="flex items-center bg-background/20 p-0.5 rounded-lg border border-border-hairline/40 shrink-0">
               <button
                 onClick={() => setMode("time")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[13px] font-medium transition-all duration-200 cursor-pointer ${
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[12.5px] font-medium transition-all duration-200 cursor-pointer ${
                   mode === "time" ? "text-primary bg-primary/10" : "hover:text-foreground text-muted-soft"
                 }`}
               >
-                <Clock className="w-3.5 h-3.5" />
+                <Clock className="w-3 h-3" />
                 <span>time</span>
               </button>
               <button
                 onClick={() => setMode("words")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[13px] font-medium transition-all duration-200 cursor-pointer ${
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[12.5px] font-medium transition-all duration-200 cursor-pointer ${
                   mode === "words" ? "text-primary bg-primary/10" : "hover:text-foreground text-muted-soft"
                 }`}
               >
-                <FileText className="w-3.5 h-3.5" />
+                <FileText className="w-3 h-3" />
                 <span>words</span>
               </button>
               <button
                 onClick={() => setMode("quote")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[13px] font-medium transition-all duration-200 cursor-pointer ${
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[12.5px] font-medium transition-all duration-200 cursor-pointer ${
                   mode === "quote" ? "text-primary bg-primary/10" : "hover:text-foreground text-muted-soft"
                 }`}
               >
-                <Quote className="w-3.5 h-3.5" />
+                <Quote className="w-3 h-3" />
                 <span>quote</span>
               </button>
               <button
-                onClick={() => setMode("custom")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[13px] font-medium transition-all duration-200 cursor-pointer ${
+                onClick={() => setMode("zen")}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[12.5px] font-medium transition-all duration-200 cursor-pointer ${
+                  mode === "zen" ? "text-primary bg-primary/10" : "hover:text-foreground text-muted-soft"
+                }`}
+              >
+                <Sparkles className="w-3 h-3" />
+                <span>zen</span>
+              </button>
+              <button
+                onClick={() => {
+                  setMode("custom");
+                  setShowCustomModal(true);
+                }}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[12.5px] font-medium transition-all duration-200 cursor-pointer ${
                   mode === "custom" ? "text-primary bg-primary/10" : "hover:text-foreground text-muted-soft"
                 }`}
               >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>zen</span>
+                <Wrench className="w-3 h-3" />
+                <span>custom</span>
               </button>
             </div>
 
             {/* Center: Limit / Duration Options */}
-            <div className="flex-1 flex justify-center border-x border-border-hairline/30 px-4">
+            <div className="flex-1 flex justify-center border-x border-border-hairline/30 px-2">
               {mode === "time" && (
                 <div className="flex items-center gap-1">
                   {[15, 30, 60, 120].map((t, i, arr) => (
                     <div key={t} className="flex items-center">
                       <button
                         onClick={() => setLimit(t)}
-                        className={`px-2.5 py-1 rounded-md text-[13px] transition-all duration-200 cursor-pointer font-medium ${
+                        className={`px-2 py-0.5 rounded-md text-[12.5px] transition-all duration-200 cursor-pointer font-medium ${
                           limit === t 
                             ? "text-primary bg-primary/10" 
                             : "hover:text-foreground text-muted-soft hover:bg-card/40"
@@ -653,7 +797,7 @@ export default function TypePage() {
                     <div key={w} className="flex items-center">
                       <button
                         onClick={() => setLimit(w)}
-                        className={`px-2.5 py-1 rounded-md text-[13px] transition-all duration-200 cursor-pointer font-medium ${
+                        className={`px-2 py-0.5 rounded-md text-[12.5px] transition-all duration-200 cursor-pointer font-medium ${
                           limit === w 
                             ? "text-primary bg-primary/10" 
                             : "hover:text-foreground text-muted-soft hover:bg-card/40"
@@ -668,17 +812,27 @@ export default function TypePage() {
                   ))}
                 </div>
               )}
+
+              {mode === "custom" && (
+                <button
+                  onClick={() => setShowCustomModal(true)}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[12.5px] font-semibold text-primary hover:text-primary-hover bg-primary/10 hover:bg-primary/20 border border-primary/20 transition-all duration-200 cursor-pointer"
+                >
+                  <Wrench className="w-3 h-3" />
+                  <span>change settings</span>
+                </button>
+              )}
             </div>
 
             {/* Right: Layout & Caret Dropdowns (No Sound Section) */}
-            <div className="flex items-center space-x-3 pl-2 shrink-0">
+            <div className="flex items-center space-x-2 pl-1 shrink-0">
               {/* Layout */}
               <div className="flex items-center space-x-1 font-sans">
-                <Keyboard className="w-3.5 h-3.5 text-muted-soft" />
+                <Keyboard className="w-3 h-3 text-muted-soft" />
                 <select
                   value={layout}
                   onChange={(e) => setLayout(e.target.value as KeyboardLayoutType)}
-                  className="bg-transparent text-muted hover:text-foreground text-[12.5px] outline-none border-none cursor-pointer pr-1"
+                  className="bg-transparent text-muted hover:text-foreground text-[12px] outline-none border-none cursor-pointer pr-1"
                 >
                   <option value="qwerty" className="bg-card">QWERTY</option>
                   <option value="dvorak" className="bg-card">Dvorak</option>
@@ -688,11 +842,11 @@ export default function TypePage() {
 
               {/* Caret */}
               <div className="flex items-center space-x-1 font-sans">
-                <span className="text-[12.5px] text-muted-soft">|</span>
+                <span className="text-[12px] text-muted-soft">|</span>
                 <select
                   value={caretType}
                   onChange={(e) => setCaretType(e.target.value as CaretType)}
-                  className="bg-transparent text-muted hover:text-foreground text-[12.5px] outline-none border-none cursor-pointer pr-1 ml-0.5"
+                  className="bg-transparent text-muted hover:text-foreground text-[12px] outline-none border-none cursor-pointer pr-1 ml-0.5"
                 >
                   <option value="smooth" className="bg-card">Line</option>
                   <option value="block" className="bg-card">Block</option>
@@ -1146,6 +1300,355 @@ export default function TypePage() {
           </p>
 
         </motion.div>
+      )}
+
+      {/* Custom Text Modal */}
+      {showCustomModal && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/75 backdrop-blur-md transition-opacity duration-300"
+            onClick={() => setShowCustomModal(false)}
+          />
+          
+          {/* Modal Container */}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="relative bg-card border border-border-hairline/60 rounded-2xl shadow-2xl p-6 w-full max-w-[850px] max-h-[90vh] overflow-y-auto flex flex-col gap-6 text-left font-sans text-foreground"
+          >
+            {/* Header */}
+            <div className="flex justify-between items-center border-b border-border-hairline/45 pb-4">
+              <div className="flex items-center gap-2">
+                <Wrench className="w-5 h-5 text-primary" />
+                <div>
+                  <h3 className="text-lg font-bold font-serif tracking-tight">Custom Text Workout</h3>
+                  <p className="text-xs text-muted-soft">Build a custom practice sequence from your own literature or code.</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowCustomModal(false)}
+                className="p-1.5 rounded-lg text-muted hover:text-foreground hover:bg-card-elevated transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            {/* Content Body Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 overflow-y-auto pr-1">
+              
+              {/* Left Column (8/12): Editor and Saved Presets */}
+              <div className="md:col-span-7 flex flex-col gap-4">
+                
+                {/* Textarea Wrapper */}
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex justify-between items-center text-xs text-muted-soft font-mono">
+                    <span>Input Text</span>
+                    <span>{customText.length} chars · {customText.split(/\s+/).filter(Boolean).length} words</span>
+                  </div>
+                  <textarea
+                    value={customText}
+                    onChange={(e) => setCustomText(e.target.value)}
+                    placeholder="Paste your custom text, quotes, or source code here..."
+                    className="w-full h-48 p-4 font-mono text-sm bg-background border border-border-hairline rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none scrollbar-none transition-all duration-200"
+                  />
+                </div>
+                
+                {/* Actions row */}
+                <div className="flex flex-wrap items-center gap-3">
+                  {/* File Upload Button */}
+                  <label className="flex items-center gap-2 px-3 py-2 bg-card-elevated border border-border-hairline hover:border-primary/50 hover:text-primary rounded-xl text-xs font-semibold cursor-pointer transition-all duration-200">
+                    <FileUp className="w-4 h-4" />
+                    <span>Open File (.txt)</span>
+                    <input 
+                      type="file" 
+                      accept=".txt" 
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (event) => {
+                            if (event.target?.result) {
+                              setCustomText(event.target.result as string);
+                            }
+                          };
+                          reader.readAsText(file);
+                        }
+                      }}
+                      className="hidden" 
+                    />
+                  </label>
+                  
+                  {/* Presets Selector */}
+                  <div className="relative">
+                    <select
+                      onChange={(e) => {
+                        const idx = Number(e.target.value);
+                        if (idx >= 0 && PRESETS[idx]) {
+                          setCustomText(PRESETS[idx].text);
+                        }
+                      }}
+                      defaultValue=""
+                      className="flex items-center gap-2 px-3 py-2 bg-card-elevated border border-border-hairline hover:border-primary/50 hover:text-primary rounded-xl text-xs font-semibold cursor-pointer transition-all duration-200 outline-none pr-8"
+                    >
+                      <option value="" disabled>Load Preset Text...</option>
+                      {PRESETS.map((p, i) => (
+                        <option key={i} value={i}>{p.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                
+                {/* Save Current Text UI */}
+                <div className="flex flex-col gap-2 border-t border-border-hairline/20 pt-4 mt-1">
+                  <span className="text-xs font-semibold text-muted-soft">Saved Texts Manager</span>
+                  
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newSaveName}
+                      onChange={(e) => setNewSaveName(e.target.value)}
+                      placeholder="Save current text as..."
+                      className="flex-1 px-3 py-2 text-xs bg-background border border-border-hairline rounded-lg focus:border-primary outline-none"
+                    />
+                    <button
+                      onClick={handleSaveText}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg transition-colors cursor-pointer"
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                      <span>Save</span>
+                    </button>
+                  </div>
+                  
+                  {/* Saved texts list */}
+                  {savedTexts.length > 0 && (
+                    <div className="max-h-24 overflow-y-auto flex flex-col gap-1 border border-border-hairline/30 rounded-lg p-2 bg-background/20 mt-1">
+                      {savedTexts.map((item) => (
+                        <div 
+                          key={item.id}
+                          onClick={() => setCustomText(item.text)}
+                          className="flex justify-between items-center px-2 py-1.5 rounded bg-card-elevated/45 hover:bg-card-elevated border border-border-hairline/10 hover:border-border-hairline/45 text-[11px] cursor-pointer transition-colors"
+                        >
+                          <span className="font-medium truncate max-w-[150px]">{item.name}</span>
+                          <span className="text-muted-soft truncate max-w-[200px] italic flex-1 ml-4 text-[10px]">{item.text}</span>
+                          <button
+                            onClick={(e) => handleDeleteText(item.id, e)}
+                            className="p-1 rounded text-muted hover:text-error hover:bg-error/10 transition-colors ml-2"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+              </div>
+              
+              {/* Right Column (5/12): Configurations */}
+              <div className="md:col-span-5 flex flex-col gap-4 border-l border-border-hairline/25 pl-0 md:pl-6">
+                
+                {/* Generation Mode */}
+                <div className="flex flex-col gap-2">
+                  <span className="text-xs font-semibold text-muted-soft">Generation Mode</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { id: "simple", label: "simple", desc: "Use text exactly as is" },
+                      { id: "repeat", label: "repeat", desc: "Repeat to fit limits" },
+                      { id: "shuffle", label: "shuffle", desc: "Randomize word order" },
+                      { id: "random", label: "random", desc: "Random word sampling" }
+                    ].map((m) => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => setCustomMode(m.id as any)}
+                        className={`px-3 py-2 rounded-xl text-left border transition-all cursor-pointer ${
+                          customMode === m.id
+                            ? "bg-primary/10 border-primary text-primary font-semibold shadow-sm"
+                            : "bg-card-elevated border-border-hairline text-muted hover:text-foreground"
+                        }`}
+                        title={m.desc}
+                      >
+                        <div className="text-xs font-bold capitalize">{m.label}</div>
+                        <div className="text-[9px] text-muted-soft leading-none mt-0.5">{m.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Delimiter */}
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs font-semibold text-muted-soft">Word Delimiter</span>
+                  <div className="flex bg-card-elevated border border-border-hairline rounded-lg p-0.5">
+                    {[
+                      { id: "space", label: "Space" },
+                      { id: "pipe", label: "Pipe (|)" },
+                      { id: "newline", label: "Newline" }
+                    ].map((d) => (
+                      <button
+                        key={d.id}
+                        type="button"
+                        onClick={() => setCustomDelimiter(d.id as any)}
+                        className={`flex-1 py-1.5 text-center text-xs font-medium rounded-md transition-colors cursor-pointer ${
+                          customDelimiter === d.id
+                            ? "bg-primary text-white font-semibold"
+                            : "text-muted hover:text-foreground"
+                        }`}
+                      >
+                        {d.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Limit */}
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs font-semibold text-muted-soft">Test Limit</span>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex bg-card-elevated border border-border-hairline rounded-lg p-0.5">
+                      {[
+                        { id: "infinite", label: "Full Text" },
+                        { id: "words", label: "Words" },
+                        { id: "time", label: "Time" }
+                      ].map((l) => (
+                        <button
+                          key={l.id}
+                          type="button"
+                          onClick={() => setCustomLimitType(l.id as any)}
+                          className={`flex-1 py-1.5 text-center text-xs font-medium rounded-md transition-colors cursor-pointer ${
+                            customLimitType === l.id
+                              ? "bg-primary text-white font-semibold"
+                              : "text-muted hover:text-foreground"
+                          }`}
+                        >
+                          {l.label}
+                        </button>
+                      ))}
+                    </div>
+                    {customLimitType !== "infinite" && (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          value={customLimitValue}
+                          onChange={(e) => setCustomLimitValue(Math.max(1, Number(e.target.value)))}
+                          className="w-20 px-3 py-1.5 text-xs bg-background border border-border-hairline rounded-lg outline-none font-mono text-foreground"
+                        />
+                        <span className="text-xs text-muted-soft">
+                          {customLimitType === "words" ? "words to generate" : "seconds limit"}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Words Filters */}
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs font-semibold text-muted-soft">Text Filters</span>
+                  <select
+                    value={wordsFilter}
+                    onChange={(e) => setWordsFilter(e.target.value as any)}
+                    className="w-full px-3 py-2 text-xs bg-card-elevated border border-border-hairline rounded-xl outline-none pr-8 cursor-pointer text-muted hover:text-foreground font-semibold"
+                  >
+                    <option value="">No Filter (As Entered)</option>
+                    <option value="lowercase">Convert to lowercase</option>
+                    <option value="uppercase">Convert to UPPERCASE</option>
+                    <option value="no_punctuation">Remove punctuation symbols</option>
+                    <option value="no_numbers">Remove numerical digits</option>
+                  </select>
+                </div>
+
+                {/* Formatting Toggles */}
+                <div className="flex flex-col gap-2 border-t border-border-hairline/20 pt-3">
+                  <span className="text-xs font-semibold text-muted-soft mb-1">Clean & Format Toggles</span>
+                  
+                  {/* Toggle 1: Zero-Width */}
+                  <label className="flex items-center justify-between text-xs cursor-pointer select-none py-1">
+                    <span className="text-muted hover:text-foreground">Remove zero-width characters</span>
+                    <input
+                      type="checkbox"
+                      checked={removeZeroWidth}
+                      onChange={(e) => setRemoveZeroWidth(e.target.checked)}
+                      className="w-4 h-4 rounded accent-primary cursor-pointer"
+                    />
+                  </label>
+                  
+                  {/* Toggle 2: Fancy Typography */}
+                  <label className="flex items-center justify-between text-xs cursor-pointer select-none py-1">
+                    <span className="text-muted hover:text-foreground">Standardize fancy quotes/typography</span>
+                    <input
+                      type="checkbox"
+                      checked={removeFancyTypography}
+                      onChange={(e) => setRemoveFancyTypography(e.target.checked)}
+                      className="w-4 h-4 rounded accent-primary cursor-pointer"
+                    />
+                  </label>
+                  
+                  {/* Toggle 3: Control Characters */}
+                  <label className="flex items-center justify-between text-xs cursor-pointer select-none py-1">
+                    <span className="text-muted hover:text-foreground">Replace tabs/control chars with spaces</span>
+                    <input
+                      type="checkbox"
+                      checked={replaceControlChars}
+                      onChange={(e) => setReplaceControlChars(e.target.checked)}
+                      className="w-4 h-4 rounded accent-primary cursor-pointer"
+                    />
+                  </label>
+                  
+                  {/* Toggle 4: Replace Newlines */}
+                  <div className="flex flex-col gap-1 mt-1">
+                    <span className="text-[11px] text-muted-soft">Newline replacement style</span>
+                    <div className="flex bg-card-elevated border border-border-hairline rounded-lg p-0.5">
+                      {[
+                        { id: "space", label: "Space" },
+                        { id: "period_space", label: "Period + Space" },
+                        { id: "none", label: "None" }
+                      ].map((n) => (
+                        <button
+                          key={n.id}
+                          type="button"
+                          onClick={() => setReplaceNewlines(n.id as any)}
+                          className={`flex-1 py-1 text-center text-[10px] font-medium rounded transition-colors cursor-pointer ${
+                            replaceNewlines === n.id
+                              ? "bg-primary/20 text-primary font-semibold"
+                              : "text-muted hover:text-foreground"
+                          }`}
+                        >
+                          {n.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+            
+            {/* Footer */}
+            <div className="flex justify-end items-center gap-3 border-t border-border-hairline/45 pt-4 mt-2">
+              <button
+                type="button"
+                onClick={() => setShowCustomModal(false)}
+                className="px-4 py-2 bg-card-elevated border border-border-hairline hover:bg-card-elevated/80 text-muted hover:text-foreground text-xs font-bold rounded-xl transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleApplyCustomSettings}
+                className="flex items-center gap-1.5 px-5 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl shadow-md transition-colors cursor-pointer"
+              >
+                <Play className="w-3.5 h-3.5 fill-white" />
+                <span>Apply & Start Test</span>
+              </button>
+            </div>
+            
+          </motion.div>
+        </div>
       )}
 
     </div>
