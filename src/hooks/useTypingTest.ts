@@ -149,9 +149,10 @@ export function useTypingTest() {
     }
     
     if (mode === "custom") {
-      // AI Coach generated words targeting weak keys and bigram transitions
+      // AI Coach generated words targeting weak keys, hand imbalances, and other workouts
       const sessions = getSavedSessions();
-      return generateAdaptiveWords(sessions, 25);
+      const workoutType = typeof window !== "undefined" ? localStorage.getItem("justtype_workout_type") || "all_rounder" : "all_rounder";
+      return generateAdaptiveWords(sessions, 25, workoutType);
     }
 
     // Default 'time' or 'words' mode
