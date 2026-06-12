@@ -5,32 +5,57 @@ import { SoundType } from "@/utils/audio";
 import { saveSession, TypingSession, KeyTelemetry, generateAdaptiveWords, getSavedSessions, analyzeWeakKeys } from "@/utils/aiEngine";
 
 const DEFAULT_WORDS = [
-  "about", "above", "across", "action", "activity", "actor", "add", "address", "admit", "adopt",
-  "advice", "affect", "after", "again", "against", "age", "agency", "agent", "agree", "agreement",
-  "ahead", "air", "all", "allow", "almost", "alone", "along", "already", "also", "although",
-  "always", "american", "among", "amount", "analysis", "analyst", "analyze", "ancient", "and", "animal",
-  "another", "answer", "anxiety", "any", "anybody", "anyone", "anything", "anyway", "anywhere", "apart",
-  "apartment", "apparent", "appeal", "appear", "appearance", "apply", "approach", "appropriate", "area", "argue",
-  "argument", "arise", "arm", "army", "around", "arrive", "art", "article", "artist", "as",
-  "ask", "aspect", "assault", "assert", "assess", "assessment", "asset", "assign", "assignment", "assist",
-  "assistance", "assistant", "associate", "association", "assume", "assumption", "assure", "at", "athlete", "athletic",
-  "atmosphere", "attach", "attack", "attempt", "attend", "attendance", "attention", "attitude", "attorney", "attract",
-  "attractive", "attribute", "audience", "author", "authority", "auto", "available", "average", "avoid", "award",
-  "aware", "awareness", "away", "baby", "back", "background", "bad", "badly", "bag", "bake",
-  "balance", "ball", "ban", "band", "bank", "bar", "barely", "barrel", "barrier", "base",
-  "baseball", "basic", "basically", "basis", "basket", "basketball", "cat", "dog", "computer", "program",
-  "code", "design", "interface", "developer", "learning", "engine", "analytics", "focus", "speed", "accuracy"
+  // --- EASY WORDS (2-4 letters, highly common, fast alternating keystrokes) ---
+  "the", "and", "of", "to", "in", "is", "you", "that", "it", "he", "was", "for", "on", "are", "as", "with", "his", "they", "at", "be",
+  "this", "have", "from", "one", "had", "by", "word", "but", "not", "what", "all", "were", "we", "when", "your", "can", "said", "use",
+  "an", "each", "she", "do", "how", "if", "will", "up", "out", "many", "then", "them", "so", "some", "her", "make", "like", "him", "into",
+  "time", "has", "look", "two", "more", "go", "see", "no", "way", "my", "than", "call", "who", "oil", "its", "now", "find", "long",
+  "down", "day", "did", "get", "come", "made", "may", "part", "new", "take", "get", "place", "made", "live", "back", "give", "most", "very",
+  "after", "thing", "our", "just", "name", "good", "sent", "help", "line", "turn", "cause", "much", "mean", "same", "look", "only", "here",
+
+  // --- MEDIUM WORDS (5-7 letters, common vocabulary, finger transitions) ---
+  "about", "above", "across", "action", "actor", "admit", "adopt", "advice", "affect", "agency", "agent", "agree", "ahead", "allow",
+  "almost", "alone", "along", "animal", "answer", "anxiety", "anyway", "apart", "appeal", "appear", "apply", "argue", "arise", "around",
+  "arrive", "artist", "aspect", "assert", "assess", "assets", "assign", "assist", "assume", "assure", "athlete", "attach", "attack",
+  "attend", "author", "better", "faster", "typing", "science", "measure", "latency", "rhythm", "cadence", "neural", "engine", "growth",
+  "privacy", "sprint", "consult", "tactile", "memory", "mistake", "remedy", "routine", "program", "develop", "complex", "elegant",
+  "minimal", "builder", "layout", "control", "command", "trigger", "resolve", "warning", "optimal", "systems", "digital", "product",
+  "network", "service", "dynamic", "latency", "balance", "perfect", "profile", "numbers", "context", "history", "support", "process",
+
+  // --- HARD WORDS (8+ letters, complex hand movement, rare letters [q,z,x,j], double letters) ---
+  "mechanical", "optimization", "synchronous", "asynchronous", "configuration", "biometric", "encapsulation", "polymorphism",
+  "telemetry", "analytical", "regression", "coefficients", "forecaster", "consistency", "performance", "hesitation", "calibration",
+  "fingerprint", "sophistication", "discipline", "premature", "compatibility", "permissions", "vulnerability", "cryptography",
+  "consequences", "transposition", "remediation", "metronome", "fluctuation", "acceleration", "inefficient", "juxtaposition",
+  "extraordinary", "unprecedented", "revolutionary", "implementation", "unpredictable", "questionnaire", "xenophobia", "equilibrium",
+  "characteristic", "acknowledgement", "infrastructure", "representative", "procrastinate", "misunderstanding", "satisfactorily"
 ];
 
 const PRESET_QUOTES = [
-  "Simplicity is the ultimate sophistication. Leonardo da Vinci on design and elegance.",
+  // --- EASY / SHORT QUOTES (Common punctuation, steady cadence) ---
+  "Simplicity is the ultimate sophistication.",
+  "Make it simple, but significant.",
+  "If you cannot do great things, do small things in a great way.",
+  "Knowledge is power. Information is liberating. Education is the premise of progress.",
+  "Choose a job you love, and you will never have to work a day in your life.",
+
+  // --- MEDIUM QUOTES (Standard punctuation, syntax, capital letters) ---
+  "Design is not just what it looks like and feels like. Design is how it works. Steve Jobs.",
   "Move fast and break things. Unless you are breaking things, you are not moving fast enough.",
   "First, solve the problem. Then, write the code. John Johnson on programming discipline.",
   "Talk is cheap. Show me the code. Linus Torvalds, the creator of Linux.",
-  "Design is not just what it looks like and feels like. Design is how it works. Steve Jobs.",
   "The only way to do great work is to love what you do. If you haven't found it yet, keep looking.",
   "Premature optimization is the root of all evil in programming. Donald Knuth.",
-  "Make it simple, but significant. Don Draper on clarity and impact."
+  "Success is not final, failure is not fatal: it is the courage to continue that counts. Winston Churchill.",
+
+  // --- HARD / COMPLEX QUOTES (Pangrams, rare characters, symbols, numbers) ---
+  "The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs.",
+  "JavaScript's asynchronous event-loop: callbacks, promises, and async/await syntax!",
+  "To juxtapose high-fidelity telemetry profiles, run: WPM >= 120 && ErrorRate <= 0.02.",
+  "Programs must be written for people to read, and only incidentally for machines to execute.",
+  "Cryptographic SHA-256 protocols encrypt bit-stream handshakes (AES-256-GCM verification).",
+  "Do, or do not. There is no try. Yoda's famous advice on focus and determination.",
+  "Can you type 100% correctly? Try: 123 + 456 = 579, WPM (words per minute), and W&M!"
 ];
 
 export type TestMode = "time" | "words" | "quote" | "custom";
