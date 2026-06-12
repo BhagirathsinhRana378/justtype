@@ -221,7 +221,7 @@ export default function Home() {
               href="/type"
               className="group flex items-center justify-center gap-3 px-10 py-5 bg-primary hover:bg-primary-hover text-white font-bold rounded-2xl shadow-xl shadow-primary/25 transition-all duration-300 transform hover:-translate-y-1"
             >
-              <span className="text-lg">Begin Training</span>
+              <span className="text-lg">JustType..Sprint</span>
               <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link
