@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { SoundType } from "@/utils/audio";
-import { saveSession, TypingSession, KeyTelemetry, generateAdaptiveWords, getSavedSessions, analyzeWeakKeys } from "@/utils/aiEngine";
+import { saveSession, TypingSession, KeyTelemetry, generateAdaptiveWords, getSavedSessions } from "@/utils/aiEngine";
 
 const DEFAULT_WORDS = [
   // --- EASY WORDS (2-4 letters, highly common, fast alternating keystrokes) ---
@@ -149,11 +149,9 @@ export function useTypingTest() {
     }
     
     if (mode === "custom") {
-      // AI Coach generated words targeting weak keys
+      // AI Coach generated words targeting weak keys and bigram transitions
       const sessions = getSavedSessions();
-      const weakKeysAnalysis = analyzeWeakKeys(sessions);
-      const weakKeys = weakKeysAnalysis.map(a => a.key);
-      return generateAdaptiveWords(weakKeys, 25);
+      return generateAdaptiveWords(sessions, 25);
     }
 
     // Default 'time' or 'words' mode

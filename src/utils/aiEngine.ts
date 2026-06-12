@@ -364,9 +364,134 @@ export function predictGrowthTrend(sessions: TypingSession[]): GrowthPrediction 
   };
 }
 
-// 4. Generate Adaptive Word Lists
-export function generateAdaptiveWords(weakKeys: string[], count: number = 30): string[] {
-  // If there are no weak keys, return a selection of common english words
+// --- INTELLIGENT REMEDIATION WORD DATABASES (REAL English Words) ---
+
+const ALTERNATING_WORDS = [
+  "and", "the", "for", "with", "hand", "work", "form", "city", "lake", "make", 
+  "name", "burn", "half", "plan", "kept", "turn", "span", "sign", "dial", "zone",
+  "dismay", "island", "authentic", "audible", "skeptic", "proficient", "meltdown", "heights",
+  "problems", "auditor", "signals", "element", "cadence", "tactile", "visual", "balance"
+];
+
+const DOUBLE_LETTER_WORDS = [
+  "add", "all", "see", "too", "good", "look", "keep", "feet", "book", "tree", 
+  "cool", "door", "free", "seed", "tool", "feed", "week", "meet", "deep", "peel",
+  "accrue", "balloon", "success", "running", "override", "committee", "possession", "millennium",
+  "suppress", "cappuccino", "narrative", "illustrate", "innovative", "coefficient", "coordinate"
+];
+
+const LEFT_HAND_WORDS = [
+  "cat", "dog", "bed", "red", "car", "get", "far", "set", "sad", "fast", 
+  "care", "date", "fact", "gave", "rate", "safe", "test", "west", "step", "crew",
+  "stress", "dread", "carter", "database", "sweater", "streets", "desperado", "reverberate",
+  "decimate", "defended", "assertive", "creative", "abstract", "batteries", "excessive"
+];
+
+const RIGHT_HAND_WORDS = [
+  "you", "him", "look", "only", "its", "kill", "mill", "poly", "monk", "pink", 
+  "link", "union", "onion", "plump", "pupil", "monopoly", "polyphony", "opinion", "million",
+  "minim", "implore", "noil", "lollipop", "homonym", "unholy", "limply", "phylon", "nylon"
+];
+
+const RARE_LETTER_WORDS = [
+  "zero", "quiz", "zone", "joke", "jump", "size", "lazy", "wave", "next",
+  "exact", "fixed", "mixed", "index", "pixel", "extra", "exile", "expert", "matrix", "vertex",
+  "quartz", "exquisite", "juxtapose", "frenzy", "blizzard", "hazard", "oxygen", "maximize",
+  "jealous", "unzip", "jacket", "squeeze", "question", "executive", "objective", "projects"
+];
+
+const GENERAL_VOCABULARY = [
+  "about", "other", "many", "then", "them", "these", "some", "would", "make", "like", 
+  "into", "time", "look", "more", "write", "number", "people", "first", "water", "called",
+  "find", "down", "come", "made", "part", "sound", "place", "years", "back", "give",
+  "most", "very", "after", "thing", "our", "just", "name", "sentence", "man", "think",
+  "say", "great", "where", "help", "through", "much", "before", "line", "right", "too",
+  "mean", "old", "any", "same", "tell", "boy", "follow", "came", "want", "show",
+  "around", "form", "three", "small", "set", "put", "end", "does", "another", "well",
+  "large", "must", "big", "even", "such", "because", "turn", "here", "why", "ask",
+  "went", "men", "read", "need", "land", "different", "home", "us", "move", "try",
+  "kind", "hand", "picture", "again", "change", "off", "play", "spell", "air", "away",
+  "animal", "house", "point", "page", "letter", "mother", "answer", "found", "study", "still",
+  "learn", "should", "america", "world", "high", "every", "near", "add", "food", "between",
+  "own", "below", "country", "plant", "last", "school", "father", "keep", "tree", "never",
+  "start", "city", "earth", "eye", "light", "thought", "head", "under", "story", "saw",
+  "left", "don't", "few", "while", "along", "might", "close", "something", "seem", "next",
+  "hard", "open", "example", "begin", "life", "always", "those", "both", "paper", "together",
+  "got", "group", "often", "run", "important", "until", "children", "side", "feet", "car",
+  "mile", "night", "walk", "white", "sea", "began", "grow", "took", "river", "four",
+  "carry", "state", "once", "book", "hear", "stop", "without", "second", "late", "miss",
+  "idea", "enough", "eat", "face", "watch", "far", "really", "almost", "let", "above"
+];
+
+// 4. Generate Adaptive Word Lists (Dynamic, self-learning transition workouts)
+export function generateAdaptiveWords(
+  sessionsOrWeakKeys: TypingSession[] | string[],
+  count: number = 30
+): string[] {
+  let weakKeys: string[] = [];
+  let weakBigrams: string[] = [];
+  let leftHandWeak = false;
+  let rightHandWeak = false;
+
+  if (Array.isArray(sessionsOrWeakKeys) && sessionsOrWeakKeys.length > 0) {
+    if (typeof sessionsOrWeakKeys[0] === "string") {
+      weakKeys = (sessionsOrWeakKeys as string[]).map(k => k.toLowerCase());
+    } else {
+      const sessions = sessionsOrWeakKeys as TypingSession[];
+      // 1. Analyze weak keys
+      const weakKeysAnalysis = analyzeWeakKeys(sessions);
+      weakKeys = weakKeysAnalysis.map(a => a.key.toLowerCase());
+      
+      // 2. Analyze weak bigram transitions
+      const bigramsAnalysis = analyzeBigrams(sessions);
+      weakBigrams = bigramsAnalysis.slice(0, 5).map(b => b.bigram.toLowerCase());
+      
+      // 3. Analyze hand bias latency and error patterns
+      let leftLatencySum = 0, leftLatencyCount = 0;
+      let rightLatencySum = 0, rightLatencyCount = 0;
+      let leftErrors = 0, rightErrors = 0;
+      let leftTotal = 0, rightTotal = 0;
+      
+      const LEFT_HAND_KEYS = new Set("qwertasyfgzxcvb12345");
+      
+      sessions.forEach(s => {
+        s.telemetry.forEach(t => {
+          if (t.key.length !== 1) return;
+          const k = t.key.toLowerCase();
+          const isLeft = LEFT_HAND_KEYS.has(k);
+          if (isLeft) {
+            leftTotal++;
+            if (!t.isCorrect) leftErrors++;
+            else {
+              leftLatencySum += t.latency;
+              leftLatencyCount++;
+            }
+          } else {
+            rightTotal++;
+            if (!t.isCorrect) rightErrors++;
+            else {
+              rightLatencySum += t.latency;
+              rightLatencyCount++;
+            }
+          }
+        });
+      });
+      
+      const leftAvg = leftLatencyCount > 0 ? leftLatencySum / leftLatencyCount : 150;
+      const rightAvg = rightLatencyCount > 0 ? rightLatencySum / rightLatencyCount : 150;
+      const leftErrRate = leftTotal > 0 ? leftErrors / leftTotal : 0;
+      const rightErrRate = rightTotal > 0 ? rightErrors / rightTotal : 0;
+      
+      // If one hand is 15% slower or has 50% more error rate, flag it as weak to trigger focal workouts
+      if (leftAvg > rightAvg * 1.15 || leftErrRate > rightErrRate * 1.5) {
+        leftHandWeak = true;
+      } else if (rightAvg > leftAvg * 1.15 || rightErrRate > leftErrRate * 1.5) {
+        rightHandWeak = true;
+      }
+    }
+  }
+
+  // Fallback to general words if no profile data exists
   if (weakKeys.length === 0) {
     const list: string[] = [];
     for (let i = 0; i < count; i++) {
@@ -376,58 +501,107 @@ export function generateAdaptiveWords(weakKeys: string[], count: number = 30): s
     return list;
   }
 
-  // Top 3 weakest keys
-  const targetKeys = weakKeys.slice(0, 3).map(k => k.toLowerCase());
-  
-  // Find words in common words that contain the weak keys
-  const matchingCommon = COMMON_WORDS_LIST.filter(word => 
-    targetKeys.some(k => word.toLowerCase().includes(k))
-  );
-
   const results: string[] = [];
-
-  // Syllable/n-gram builder targeting transitions
-  // e.g. for weak keys 'k' and 'e', build tokens like 'ke', 'ek', 'ack', 'oke'
-  const prefixes = ["th", "re", "in", "he", "an", "ar", "co", "de", "le", "ti"];
-  const suffixes = ["nd", "er", "on", "at", "es", "ed", "te", "st", "nt", "al"];
-  const middleVowels = ["a", "e", "i", "o", "u", "ou", "ee", "ai", "ea"];
-
-  while (results.length < count) {
-    // 40% chance of selecting a matching common word
-    if (matchingCommon.length > 0 && Math.random() < 0.4) {
-      const w = matchingCommon[Math.floor(Math.random() * matchingCommon.length)];
-      results.push(w);
-    } else {
-      // 60% chance of generating a synthetic phonetic word containing the key
-      const key = targetKeys[Math.floor(Math.random() * targetKeys.length)];
-      const structureType = Math.floor(Math.random() * 3);
-
-      let word = "";
-      if (structureType === 0) {
-        // prefix + key + suffix
-        const p = prefixes[Math.floor(Math.random() * prefixes.length)];
-        const s = suffixes[Math.floor(Math.random() * suffixes.length)];
-        word = p + key + s;
-      } else if (structureType === 1) {
-        // key + middleVowel + suffix
-        const m = middleVowels[Math.floor(Math.random() * middleVowels.length)];
-        const s = suffixes[Math.floor(Math.random() * suffixes.length)];
-        word = key + m + s;
-      } else {
-        // prefix + middleVowel + key
-        const p = prefixes[Math.floor(Math.random() * prefixes.length)];
-        const m = middleVowels[Math.floor(Math.random() * middleVowels.length)];
-        word = p + m + key;
+  
+  // Custom Adaptive Recipe:
+  // 1. Weak keys and bigrams remediation (40%)
+  // 2. Alternating flow words (20%)
+  // 3. Double-letter drills (20%)
+  // 4. Weak hand training (10%)
+  // 5. Rare letter drills (10%)
+  
+  const targetKeys = weakKeys.slice(0, 3);
+  const targetBigrams = weakBigrams.slice(0, 3);
+  
+  // Score helper to match words against user's specific weak targets
+  const getRemediationScore = (word: string): number => {
+    let score = 0;
+    const w = word.toLowerCase();
+    targetKeys.forEach((key, index) => {
+      if (w.includes(key)) {
+        score += (3 - index) * 10;
       }
-
-      // Cleanup consecutive identical letters if more than 2, or weird formatting
-      word = word.replace(/(.)\1{2,}/g, "$1$1");
-      
-      if (word.length >= 3 && word.length <= 8) {
-        results.push(word);
+    });
+    targetBigrams.forEach((bg, index) => {
+      if (w.includes(bg)) {
+        score += (3 - index) * 25;
       }
+    });
+    return score;
+  };
+
+  const allVocab = [
+    ...COMMON_WORDS_LIST,
+    ...ALTERNATING_WORDS,
+    ...DOUBLE_LETTER_WORDS,
+    ...LEFT_HAND_WORDS,
+    ...RIGHT_HAND_WORDS,
+    ...RARE_LETTER_WORDS,
+    ...GENERAL_VOCABULARY
+  ];
+  
+  const uniqueVocab = Array.from(new Set(allVocab));
+  
+  const alternatingPool = ALTERNATING_WORDS;
+  const doubleLetterPool = DOUBLE_LETTER_WORDS;
+  const leftHandPool = LEFT_HAND_WORDS;
+  const rightHandPool = RIGHT_HAND_WORDS;
+  const rareLetterPool = RARE_LETTER_WORDS;
+  
+  const remediationPool = uniqueVocab
+    .map(w => ({ word: w, score: getRemediationScore(w) }))
+    .filter(item => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map(item => item.word);
+
+  const takeRandom = (pool: string[], n: number, usedSet: Set<string>) => {
+    const list: string[] = [];
+    const available = pool.filter(w => !usedSet.has(w));
+    const source = available.length > 0 ? available : pool;
+    
+    const shuffled = [...source].sort(() => Math.random() - 0.5);
+    for (let i = 0; i < Math.min(n, shuffled.length); i++) {
+      list.push(shuffled[i]);
+      usedSet.add(shuffled[i]);
     }
+    return list;
+  };
+
+  const used = new Set<string>();
+
+  // 1. Weak keys and bigrams remediation (40%)
+  const nRemediation = Math.max(1, Math.round(count * 0.40));
+  results.push(...takeRandom(remediationPool.length > 0 ? remediationPool : uniqueVocab, nRemediation, used));
+
+  // 2. Alternating flow words (20%)
+  const nAlternating = Math.max(1, Math.round(count * 0.20));
+  results.push(...takeRandom(alternatingPool, nAlternating, used));
+
+  // 3. Double-letter drills (20%)
+  const nDouble = Math.max(1, Math.round(count * 0.20));
+  results.push(...takeRandom(doubleLetterPool, nDouble, used));
+
+  // 4. Hand imbalance training (10%)
+  const nHand = Math.max(1, Math.round(count * 0.10));
+  if (leftHandWeak) {
+    results.push(...takeRandom(leftHandPool, nHand, used));
+  } else if (rightHandWeak) {
+    results.push(...takeRandom(rightHandPool, nHand, used));
+  } else {
+    results.push(...takeRandom(uniqueVocab, nHand, used));
   }
 
-  return results;
+  // 5. Rare letter drills (10%)
+  const nRare = Math.max(1, Math.round(count * 0.10));
+  results.push(...takeRandom(rareLetterPool, nRare, used));
+
+  // Remainder padding
+  while (results.length < count) {
+    const extra = takeRandom(uniqueVocab, 1, used);
+    if (extra.length === 0) break;
+    results.push(extra[0]);
+  }
+
+  // Final shuffle of generated list to prevent repetitive patterns
+  return results.slice(0, count).sort(() => Math.random() - 0.5);
 }
