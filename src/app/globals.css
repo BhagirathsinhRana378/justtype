@@ -55,6 +55,14 @@
   --font-geist-sans: "Geist Sans", sans-serif;
   --font-geist-mono: "Geist Mono", monospace;
   --font-serif: "Cormorant Garamond", serif;
+
+  /* Typography Settings default state values */
+  --typing-font-size: 1.55rem;
+  --typing-font-family: var(--font-geist-mono);
+  --typing-word-gap: 0.698rem;
+  --typing-line-height: 2.403rem;
+  --typing-cursor-height: 1.597rem;
+  --typing-letter-spacing: -0.015em;
 }
 
 /* Charcoal Theme (Dark) */
@@ -353,4 +361,15 @@ body {
   scrollbar-width: thin;
   scrollbar-color: var(--border-hairline) transparent;
 }
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+/* Hide scrollbar for IE, Edge and Firefox */
+.scrollbar-none {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
 

@@ -87,10 +87,11 @@ const Word: React.FC<WordProps> = ({
 
   return (
     <span
-      className="inline-flex relative font-mono select-none py-[1px] px-[2px]"
+      className="inline-flex relative select-none py-[1px] px-[2px]"
       style={{
-        marginRight: "0.3em",
-        letterSpacing: "normal",
+        marginRight: "var(--typing-word-gap)",
+        letterSpacing: "var(--typing-letter-spacing)",
+        fontFamily: "var(--typing-font-family)",
       }}
     >
       {/* Absolute positioned mechanical caret */}
@@ -100,8 +101,8 @@ const Word: React.FC<WordProps> = ({
           style={{
             left: `${caretLeft}px`,
             width: caretType === "smooth" ? "1.5px" : "0.62em",
-            height: caretType === "underline" ? "3px" : "1.22em",
-            top: caretType === "underline" ? "90%" : "12%",
+            height: caretType === "underline" ? "3px" : "var(--typing-cursor-height)",
+            top: caretType === "underline" ? "90%" : "calc(50% - var(--typing-cursor-height) / 2)",
             transition: "left 40ms linear",
             zIndex: caretType === "block" ? -1 : 10,
           }}

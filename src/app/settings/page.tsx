@@ -7,6 +7,8 @@ import { THEMES, ThemeMeta, applyTheme, DEFAULT_THEME_ID, THEME_STORAGE_KEY } fr
 import SectionHeader from "@/components/SectionHeader";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
+import TypographySettings from "@/components/settings/TypographySettings";
+
 function ThemePreviewCard({
   theme,
   active,
@@ -152,6 +154,9 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
+
+            {/* Typography Font System */}
+            <TypographySettings />
 
             {/* Layout, Audio & Caret Options */}
             <div className="bg-card border border-border-hairline rounded-lg p-6 flex flex-col gap-6">

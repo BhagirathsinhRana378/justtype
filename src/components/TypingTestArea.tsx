@@ -208,7 +208,15 @@ export default function TypingTestArea({
           className="w-full relative transition-transform duration-300 cubic-bezier(0.25, 1, 0.5, 1)"
           style={{ transform: `translateY(${translateY}px)` }}
         >
-          <div className="font-mono flex flex-wrap tracking-normal text-[28px] md:text-[44px] lg:text-[48px] leading-[1.7]">
+          <div 
+            className="flex flex-wrap"
+            style={{
+              fontFamily: "var(--typing-font-family)",
+              fontSize: "var(--typing-font-size)",
+              lineHeight: "var(--typing-line-height)",
+              letterSpacing: "var(--typing-letter-spacing)",
+            }}
+          >
             {words.map((word, wordIndex) => {
               const isActive = wordIndex === activeWordIndex;
               const isPast = wordIndex < activeWordIndex;
