@@ -27,7 +27,7 @@ export default function NavBar() {
           <div className="flex items-center">
             {/* Logo */}
             <Link href="/" className="flex items-center space-x-2 text-foreground hover:opacity-90">
-              <span className="text-primary font-serif text-2xl font-bold tracking-tight"></span>
+              <span className="text-primary font-serif text-2xl font-bold tracking-tight">✦ JustType</span>
             </Link>
           </div>
           
