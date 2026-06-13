@@ -122,7 +122,7 @@ const Word: React.FC<WordProps> = ({
           } else {
             const typedChar = typed[item.index];
             if (typedChar === item.char) {
-              charClass = "text-foreground";
+              charClass = "text-foreground font-semibold";
             } else {
               charClass = "text-error";
             }
