@@ -93,9 +93,9 @@ export default function FriendRaceClient() {
     setConnecting(true);
     setError(null);
 
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const host = window.location.hostname;
-    const ws = new WebSocket(`${protocol}//${host}:3001`);
+    const envWsUrl = process.env.NEXT_PUBLIC_WS_URL;
+    const wsUrl = envWsUrl || `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.hostname}:3001`;
+    const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
     ws.onopen = () => {
