@@ -18,7 +18,7 @@ export default function FriendRaceClient() {
   const isHost = searchParams.get("host") === "true";
 
   const store = useRaceStore();
-  const { playerName, roomStatus, players, words, myPlayerId } = store;
+  const { roomStatus, players, words, myPlayerId } = store;
 
   const [connected, setConnected] = useState(false);
   const [connecting, setConnecting] = useState(true);
@@ -27,6 +27,8 @@ export default function FriendRaceClient() {
   const [raceElapsed, setRaceElapsed] = useState(0);
   const [results, setResults] = useState<any[]>([]);
   const [focused, setFocused] = useState(false);
+  const [revertTrigger, setRevertTrigger] = useState(0);
+  const [roomSettings, setRoomSettings] = useState<any>(null);
   const lastProgressSentRef = useRef({ time: 0, index: -1 });
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -34,8 +36,8 @@ export default function FriendRaceClient() {
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const {
-    typedInput, wpm, accuracy, progress, handleInput, reset: resetEngine,
-  } = useRaceEngine(words);
+    typedInput, wpm, accuracy, progress, handleInput, reset: resetEngine, feedback, totalKeystrokes,
+  } = useRaceEngine(words, { strict: roomSettings?.strictness === "strict" });
 
   const typedWords = useMemo(() => typedInput.split(" "), [typedInput]);
   const activeWordIndex = useMemo(() => Math.max(0, typedWords.length - 1), [typedWords]);
@@ -49,12 +51,14 @@ export default function FriendRaceClient() {
         store.setPlayers(msg.players);
         store.setRoomStatus("waiting");
         store.setIsHost(msg.players[0]?.id === msg.player.id);
+        setRoomSettings(msg.settings);
         setError(null);
         break;
       case "room_reset":
         store.setTextToType(msg.text);
         store.setPlayers(msg.players);
         store.setRoomStatus("waiting");
+        setRoomSettings(msg.settings);
         setResults([]);
         resetEngine();
         setError(null);
@@ -115,10 +119,21 @@ export default function FriendRaceClient() {
       setConnected(true);
       setConnecting(false);
       const name = useRaceStore.getState().playerName || urlName;
+
+      const settings = isHost ? {
+        duration: searchParams.get("duration") || "unlimited",
+        wordCount: searchParams.get("wordCount") || "25",
+        textType: searchParams.get("textType") || "random",
+        strictness: searchParams.get("strictness") || "relaxed",
+        goal: searchParams.get("goal") || "finish",
+        customText: searchParams.get("customText") || "",
+      } : undefined;
+
       ws.send(JSON.stringify({
         type: isHost ? "create_room" : "join_room",
         roomId,
         name,
+        settings,
       }));
     };
 
@@ -142,7 +157,7 @@ export default function FriendRaceClient() {
     ws.onerror = () => {
       setConnecting(false);
     };
-  }, [roomId, urlName, isHost, handleWSMessage]);
+  }, [roomId, urlName, isHost, handleWSMessage, searchParams]);
 
   useEffect(() => {
     store.setPlayerName(urlName);
@@ -152,6 +167,7 @@ export default function FriendRaceClient() {
       if (reconnectTimer.current) { window.clearTimeout(reconnectTimer.current); reconnectTimer.current = null; }
       if (wsRef.current) { wsRef.current.close(); wsRef.current = null; }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -164,13 +180,17 @@ export default function FriendRaceClient() {
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (roomStatus !== "racing") return;
     const val = e.target.value;
-    const metrics = handleInput(val);
-    const idx = val.length;
+    const metrics = handleInput(val, e.nativeEvent);
+
+    if (metrics.isError) {
+      e.target.value = typedInput;
+      setRevertTrigger(prev => prev + 1);
+      return;
+    }
 
     const lastProgressSent = lastProgressSentRef.current;
     const now = Date.now();
-    const textLength = words.join(" ").length;
-    const isFinished = val.length >= textLength;
+    const isFinished = metrics.progress >= 1;
     const isSpace = val.endsWith(" ");
 
     if (
@@ -182,12 +202,19 @@ export default function FriendRaceClient() {
       if (wsRef.current?.readyState === WebSocket.OPEN) {
         wsRef.current.send(JSON.stringify({
           type: "progress",
-          index: idx,
-          accuracy: metrics.accuracy,
-          wpm: metrics.wpm,
+          typed: val,
+          keystrokes: metrics.totalKeystrokes,
         }));
-        lastProgressSentRef.current = { time: now, index: idx };
+        lastProgressSentRef.current = { time: now, index: val.length };
       }
+    }
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (roomStatus !== "racing") return;
+
+    if (e.key === "Enter") {
+      e.preventDefault();
     }
   };
 
@@ -203,6 +230,21 @@ export default function FriendRaceClient() {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [roomStatus]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    if (feedback === "error" || feedback === "blocked") {
+      el.classList.remove("animate-shake", "animate-red-flash", "animate-green-pulse");
+      void el.offsetWidth; // force reflow
+      el.classList.add("animate-shake", "animate-red-flash");
+    } else if (feedback === "correct") {
+      el.classList.remove("animate-shake", "animate-red-flash", "animate-green-pulse");
+      void el.offsetWidth; // force reflow
+      el.classList.add("animate-green-pulse");
+    }
+  }, [feedback, totalKeystrokes]);
 
   const readyUp = () => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -225,9 +267,19 @@ export default function FriendRaceClient() {
   const sortedResults = useMemo(() => {
     const completed = [...results].filter((p: any) => p.status === "completed");
     const others = [...results].filter((p: any) => p.status !== "completed");
-    completed.sort((a: any, b: any) => (a.finishTime || Infinity) - (b.finishTime || Infinity));
+    
+    const goalVal = roomSettings?.goal || "finish";
+    if (goalVal === "accuracy") {
+      completed.sort((a: any, b: any) => b.accuracy - a.accuracy || b.wpm - a.wpm);
+    } else if (goalVal === "balanced") {
+      const score = (p: any) => p.wpm * (p.accuracy / 100);
+      completed.sort((a: any, b: any) => score(b) - score(a));
+    } else {
+      completed.sort((a: any, b: any) => (a.finishTime || Infinity) - (b.finishTime || Infinity));
+    }
+    
     return [...completed, ...others];
-  }, [results]);
+  }, [results, roomSettings]);
 
   const position = useMemo(() => {
     if (!myPlayer) return 0;
@@ -244,6 +296,7 @@ export default function FriendRaceClient() {
 
   useEffect(() => {
     wordRefs.current = [];
+    setTranslateY(0);
   }, [words]);
 
   useEffect(() => {
@@ -327,8 +380,12 @@ export default function FriendRaceClient() {
           <div className="flex items-center gap-2">
             {roomStatus === "racing" && (
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-background/50 border border-border-hairline">
-                <Timer className="w-3 h-3 text-primary" />
-                <span className="font-mono text-xs font-bold">{Math.floor(raceElapsed / 60)}:{(raceElapsed % 60).toString().padStart(2, "0")}</span>
+                <Timer className="w-3 h-3 text-primary animate-pulse" />
+                <span className="font-mono text-xs font-bold">
+                  {roomSettings?.duration && roomSettings.duration !== "unlimited"
+                    ? `${Math.max(0, parseInt(roomSettings.duration) - raceElapsed)}s left`
+                    : `${Math.floor(raceElapsed / 60)}:${(raceElapsed % 60).toString().padStart(2, "0")}`}
+                </span>
               </div>
             )}
             <span className="text-[8px] text-muted-soft font-mono flex items-center gap-1">
@@ -341,11 +398,11 @@ export default function FriendRaceClient() {
           </div>
         </div>
 
-        <div className="bg-card border border-border-hairline rounded-xl overflow-hidden shadow-lg flex-1 min-h-[240px] relative backdrop-blur-md">
+        <div className="bg-card border border-border-hairline rounded-xl overflow-hidden shadow-lg flex-1 min-h-[190px] relative backdrop-blur-md">
           {roomStatus === "racing" || roomStatus === "finished" ? (
             <RaceCanvas players={players} myPlayerId={myPlayerId} isRacing={roomStatus === "racing"} />
           ) : (
-            <div className="w-full h-full min-h-[240px] flex items-center justify-center bg-card/30">
+            <div className="w-full h-full min-h-[190px] flex items-center justify-center bg-card/30">
               <div className="text-center px-4">
                 <Users className="w-10 h-10 text-primary/40 mx-auto mb-2" />
                 <p className="text-[11px] text-muted-soft">Race track will appear here</p>
@@ -354,11 +411,33 @@ export default function FriendRaceClient() {
           )}
         </div>
 
-        <div className={`bg-card border rounded-xl relative backdrop-blur-md transition-all duration-300 ${focused ? "border-primary/40 shadow-[0_0_20px_rgba(204,120,92,0.08)] bg-card/75" : "border-border-hairline"}`}>
+        <div ref={containerRef} className={`bg-card border rounded-xl relative backdrop-blur-md transition-all duration-300 ${focused ? "border-primary/40 shadow-[0_0_20px_rgba(204,120,92,0.08)] bg-card/75" : "border-border-hairline"}`}>
           {roomStatus === "waiting" && (
             <div className="flex flex-col items-center py-5 px-4 animate-fadeIn">
               <h2 className="text-base font-bold mb-0.5">Waiting for Players</h2>
               <p className="text-[11px] text-muted mb-3 text-center">Minimum 2 players needed. All players must ready up.</p>
+              
+              {/* Render Room Settings Badge board */}
+              {roomSettings && (
+                <div className="mb-4 flex flex-wrap justify-center gap-1.5 max-w-md">
+                  <span className="px-2 py-0.5 rounded bg-background border border-border-hairline text-[9px] font-mono font-bold text-primary">
+                    ⏱ Duration: {roomSettings.duration === "unlimited" ? "Unlimited" : `${roomSettings.duration}s`}
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-background border border-border-hairline text-[9px] font-mono font-bold text-primary">
+                    📝 Type: {roomSettings.textType}
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-background border border-border-hairline text-[9px] font-mono font-bold text-primary">
+                    📏 Words: {roomSettings.wordCount}
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-background border border-border-hairline text-[9px] font-mono font-bold text-primary">
+                    🛡 Strictness: {roomSettings.strictness}
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-background border border-border-hairline text-[9px] font-mono font-bold text-primary">
+                    🎯 Goal: {roomSettings.goal === "balanced" ? "Balanced Score" : roomSettings.goal === "accuracy" ? "Highest Accuracy" : "First Finish"}
+                  </span>
+                </div>
+              )}
+
               <div className="flex flex-wrap gap-2 mb-4">
                 <button onClick={readyUp}
                   className={`px-6 py-2 rounded-lg font-bold text-xs cursor-pointer transition-all ${
@@ -415,12 +494,11 @@ export default function FriendRaceClient() {
                 ))}
               </div>
               <div 
-                ref={containerRef} 
                 onClick={() => inputRef.current?.focus()} 
                 className="relative cursor-text select-none overflow-hidden py-6 px-6" 
                 style={{ 
-                  height: "calc(3 * var(--typing-font-size) * var(--typing-line-height) + 2rem)",
-                  minHeight: "180px"
+                  height: "calc(3.5 * var(--typing-font-size) * var(--typing-line-height) + 2rem)",
+                  minHeight: "240px"
                 }}
               >
                 {!focused && (
@@ -445,8 +523,19 @@ export default function FriendRaceClient() {
                   </div>
                 </div>
               </div>
+              
+              {feedback === "blocked" && (
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-error/95 text-on-error px-4 py-1.5 rounded-lg border border-error-border shadow-lg flex items-center gap-1.5 text-[10px] font-bold font-mono tracking-wide z-30 animate-bounce">
+                  <AlertTriangle className="w-3.5 h-3.5 text-accent-amber animate-pulse" />
+                  <span>Finish this word to continue</span>
+                </div>
+              )}
+
               <input ref={inputRef} type="text" value={typedInput} onChange={onChange}
+                onKeyDown={onKeyDown}
                 onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+                onPaste={(e) => e.preventDefault()}
+                data-revert={revertTrigger}
                 className="absolute opacity-0 w-0 h-0 pointer-events-none"
                 autoComplete="off" autoCapitalize="off" autoCorrect="off" spellCheck={false} />
             </div>
@@ -462,21 +551,35 @@ export default function FriendRaceClient() {
               <div className="w-full max-w-sm border border-border-hairline rounded-lg overflow-hidden bg-background mb-4">
                 <div className="grid grid-cols-12 bg-card border-b border-border-hairline px-3 py-1.5 text-[9px] font-bold text-muted-soft">
                   <span className="col-span-2 text-center">#</span>
-                  <span className="col-span-5">Player</span>
-                  <span className="col-span-3 text-center">WPM</span>
-                  <span className="col-span-2 text-center">Acc</span>
+                  <span className="col-span-4">Player</span>
+                  <span className="col-span-3 text-center">
+                    {roomSettings?.goal === "accuracy" ? "Accuracy" : roomSettings?.goal === "balanced" ? "Score" : "WPM"}
+                  </span>
+                  <span className="col-span-3 text-center">
+                    {roomSettings?.goal === "finish" ? "Time" : "WPM"}
+                  </span>
                 </div>
-                {sortedResults.map((p: any, idx: number) => (
-                  <div key={p.id} className={`grid grid-cols-12 px-3 py-2 text-xs items-center ${p.id === myPlayerId ? "bg-primary/5 font-bold" : ""}`}>
-                    <span className="col-span-2 text-center font-mono text-primary font-bold">#{idx + 1}</span>
-                    <span className="col-span-5 flex items-center gap-1 truncate">
-                      <span className={`w-1.5 h-1.5 rounded-full ${p.status === "completed" ? "bg-success" : "bg-error"} shrink-0`} />
-                      {p.name} {p.id === myPlayerId && <span className="text-[7px] bg-primary/15 text-primary px-1 rounded-sm">You</span>}
-                    </span>
-                    <span className="col-span-3 text-center font-mono">{Math.round(p.wpm)}</span>
-                    <span className="col-span-2 text-center font-mono">{Math.round(p.accuracy)}%</span>
-                  </div>
-                ))}
+                {sortedResults.map((p: any, idx: number) => {
+                  const score = Math.round(p.wpm * (p.accuracy / 100));
+                  return (
+                    <div key={p.id} className={`grid grid-cols-12 px-3 py-2 text-xs items-center ${p.id === myPlayerId ? "bg-primary/5 font-bold" : ""}`}>
+                      <span className="col-span-2 text-center font-mono text-primary font-bold">#{idx + 1}</span>
+                      <span className="col-span-4 flex items-center gap-1 truncate">
+                        <span className={`w-1.5 h-1.5 rounded-full ${p.status === "completed" ? "bg-success" : "bg-error"} shrink-0`} />
+                        {p.name} {p.id === myPlayerId && <span className="text-[7px] bg-primary/15 text-primary px-1 rounded-sm">You</span>}
+                      </span>
+                      <span className="col-span-3 text-center font-mono">
+                        {roomSettings?.goal === "accuracy" ? `${Math.round(p.accuracy)}%` : roomSettings?.goal === "balanced" ? score : Math.round(p.wpm)}
+                      </span>
+                      <span className="col-span-3 text-center font-mono">
+                        {roomSettings?.goal === "finish"
+                          ? (p.finishTime ? `${(p.finishTime / 1000).toFixed(1)}s` : "-")
+                          : Math.round(p.wpm)
+                        }
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
               <button onClick={rematch} className="px-5 py-2 bg-primary text-on-primary font-bold text-xs rounded-lg hover:bg-primary-hover cursor-pointer flex items-center gap-1.5 transition-all">
                 <RotateCcw className="w-3.5 h-3.5" /> Race Again
@@ -491,8 +594,34 @@ export default function FriendRaceClient() {
         .animate-fadeIn { animation: fadeIn 0.3s ease-out forwards; }
         @keyframes countdown-pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.1); } }
         .race-countdown-number { animation: countdown-pulse 1s ease-in-out infinite; }
+
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          20%, 60% { transform: translateX(-4px); }
+          40%, 80% { transform: translateX(4px); }
+        }
+        .animate-shake {
+          animation: shake 0.25s ease-in-out;
+        }
+
+        @keyframes red-flash {
+          0% { border-color: rgba(239, 68, 68, 0.2); box-shadow: 0 0 0 rgba(239, 68, 68, 0); }
+          50% { border-color: rgba(239, 68, 68, 0.8); box-shadow: 0 0 15px rgba(239, 68, 68, 0.3); }
+          100% { border-color: rgba(239, 68, 68, 0.2); box-shadow: 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        .animate-red-flash {
+          animation: red-flash 0.4s ease-in-out;
+        }
+
+        @keyframes green-pulse {
+          0% { border-color: rgba(16, 185, 129, 0.2); box-shadow: 0 0 0 rgba(16, 185, 129, 0); }
+          50% { border-color: rgba(16, 185, 129, 0.8); box-shadow: 0 0 15px rgba(16, 185, 129, 0.3); }
+          100% { border-color: rgba(16, 185, 129, 0.2); box-shadow: 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        .animate-green-pulse {
+          animation: green-pulse 0.4s ease-in-out;
+        }
       `}</style>
     </div>
   );
 }
-

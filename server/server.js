@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const { WebSocketServer } = require("ws");
 const http = require("http");
 
@@ -21,9 +22,73 @@ const WORDS = [
   "border","shadow","margin","padding","height","width","window","object","string","cursor"
 ];
 
-function genText(len = 25) {
+const COMMON_WORDS = [
+  "the", "be", "to", "of", "and", "a", "in", "that", "have", "i", "it", "for", "not", "on", "with", "he", "as", "you", "do", "at",
+  "this", "but", "his", "by", "from", "they", "we", "say", "her", "she", "or", "an", "will", "my", "one", "all", "would", "there", "their", "what",
+  "so", "up", "out", "if", "about", "who", "get", "which", "go", "me", "when", "make", "can", "like", "time", "no", "just", "him", "know", "take",
+  "people", "into", "year", "your", "good", "some", "could", "them", "see", "other", "than", "then", "now", "look", "only", "come", "its", "over", "think", "also",
+  "back", "after", "use", "two", "how", "our", "work", "first", "well", "way", "even", "new", "want", "because", "any", "these", "give", "day", "most", "us"
+];
+
+const QUOTES = [
+  "To be or not to be, that is the question.",
+  "All that glitters is not gold.",
+  "A journey of a thousand miles begins with a single step.",
+  "In the middle of difficulty lies opportunity.",
+  "Success is not final, failure is not fatal: it is the courage to continue that counts.",
+  "Believe you can and you're halfway there.",
+  "What lies behind us and what lies before us are tiny matters compared to what lies within us.",
+  "The only way to do great work is to love what you do.",
+  "Strive not to be a success, but rather to be of value.",
+  "Do not go where the path may lead, go instead where there is no path and leave a trail.",
+  "Life is what happens when you're busy making other plans.",
+  "The future belongs to those who believe in the beauty of their dreams."
+];
+
+const CODE_SNIPPETS = [
+  "const [state, setState] = useState(initial);",
+  "function add(a, b) { return a + b; }",
+  "import React, { useEffect } from 'react';",
+  "const result = items.filter(x => x.active);",
+  "export default function App() { return <div />; }",
+  "const elapsed = (Date.now() - startTime) / 1000;",
+  "const wpm = Math.round((correctChars / 5) / elapsed);",
+  "try { await fetchData(); } catch (err) { console.error(err); }",
+  "if (user.isAdmin) { showDashboard(); } else { redirect(); }",
+  "const promise = new Promise((resolve) => setTimeout(resolve, 100));"
+];
+
+function genNumbersText(len) {
   const out = [];
-  for (let i = 0; i < len; i++) out.push(WORDS[Math.floor(Math.random() * WORDS.length)]);
+  for (let i = 0; i < len; i++) {
+    out.push(Math.floor(Math.random() * 9000 + 1000).toString());
+  }
+  return out.join(" ");
+}
+
+function genTextFromSettings(settings) {
+  const textType = settings.textType || "random";
+  const wordCount = parseInt(settings.wordCount) || 25;
+  const customText = settings.customText || "";
+
+  if (textType === "custom" && customText) {
+    return customText.trim().replace(/\s+/g, " ");
+  }
+  if (textType === "quotes") {
+    return QUOTES[Math.floor(Math.random() * QUOTES.length)];
+  }
+  if (textType === "code") {
+    return CODE_SNIPPETS[Math.floor(Math.random() * CODE_SNIPPETS.length)];
+  }
+  if (textType === "numbers") {
+    return genNumbersText(wordCount);
+  }
+  
+  const wordList = textType === "common" ? COMMON_WORDS : WORDS;
+  const out = [];
+  for (let i = 0; i < wordCount; i++) {
+    out.push(wordList[Math.floor(Math.random() * wordList.length)]);
+  }
   return out.join(" ");
 }
 
@@ -65,6 +130,16 @@ wss.on("connection", (ws) => {
 
         case "create_room": {
           const id = msg.roomId || genId();
+          const settings = msg.settings || {
+            duration: "unlimited",
+            wordCount: "25",
+            textType: "random",
+            strictness: "relaxed",
+            aiDiff: "medium",
+            goal: "finish",
+            customText: ""
+          };
+
           if (rooms.has(id)) {
             const room = rooms.get(id);
             if (room.status === "racing") {
@@ -95,7 +170,7 @@ wss.on("connection", (ws) => {
             // If room was finished, reset room back to waiting lobby status
             if (room.status === "finished") {
               room.status = "waiting";
-              room.text = genText(25);
+              room.text = genTextFromSettings(room.settings);
               room.startTime = null;
               if (room.finishCheckTimer) {
                 clearTimeout(room.finishCheckTimer);
@@ -115,6 +190,7 @@ wss.on("connection", (ws) => {
               roomId: id,
               player: { id: player.id, name: player.name },
               text: room.text,
+              settings: room.settings,
               players: serializePlayers(room),
             }));
 
@@ -125,7 +201,8 @@ wss.on("connection", (ws) => {
             });
             break;
           }
-          const text = genText(25);
+
+          const text = genTextFromSettings(settings);
 
           player = {
             id: genId(),
@@ -142,6 +219,7 @@ wss.on("connection", (ws) => {
             status: "waiting",
             hostId: player.id,
             hostName: player.name,
+            settings,
             text,
             players: [player],
             startTime: null,
@@ -155,6 +233,7 @@ wss.on("connection", (ws) => {
             roomId: id,
             player: { id: player.id, name: player.name },
             text,
+            settings,
             players: serializePlayers(rooms.get(id)),
           }));
           break;
@@ -196,7 +275,7 @@ wss.on("connection", (ws) => {
           // If room was finished, reset room back to waiting lobby status
           if (room.status === "finished") {
             room.status = "waiting";
-            room.text = genText(25);
+            room.text = genTextFromSettings(room.settings);
             room.startTime = null;
             if (room.finishCheckTimer) {
               clearTimeout(room.finishCheckTimer);
@@ -216,6 +295,7 @@ wss.on("connection", (ws) => {
             roomId: id,
             player: { id: player.id, name: player.name },
             text: room.text,
+            settings: room.settings,
             players: serializePlayers(room),
           }));
 
@@ -232,12 +312,11 @@ wss.on("connection", (ws) => {
           const room = rooms.get(roomId);
           if (!room) return;
 
-          // Only allow resetting if the room is in finished state
           if (room.status !== "finished") return;
 
           // Reset room status
           room.status = "waiting";
-          room.text = genText(25);
+          room.text = genTextFromSettings(room.settings);
           room.startTime = null;
           if (room.finishCheckTimer) {
             clearTimeout(room.finishCheckTimer);
@@ -257,6 +336,7 @@ wss.on("connection", (ws) => {
           broadcast(roomId, {
             type: "room_reset",
             text: room.text,
+            settings: room.settings,
             players: serializePlayers(room),
           });
           break;
@@ -291,6 +371,30 @@ wss.on("connection", (ws) => {
                 p.finishTime = 0;
               });
               broadcast(roomId, { type: "race_start" });
+
+              // Start Server Duration Timeout Limit if configured
+              if (room.settings && room.settings.duration !== "unlimited") {
+                const durationMs = parseInt(room.settings.duration) * 1000;
+                if (room.finishCheckTimer) clearTimeout(room.finishCheckTimer);
+                
+                room.finishCheckTimer = setTimeout(() => {
+                  if (!rooms.has(roomId)) return;
+                  if (room.status !== "racing") return;
+                  
+                  room.players.forEach(p => {
+                    if (p.status === "racing") {
+                      p.status = "completed";
+                      p.finishTime = durationMs;
+                    }
+                  });
+                  
+                  room.status = "finished";
+                  broadcast(roomId, {
+                    type: "game_finished",
+                    players: serializePlayers(room),
+                  });
+                }, durationMs);
+              }
             }, 3000);
           }
           break;
@@ -302,27 +406,76 @@ wss.on("connection", (ws) => {
           if (!room || room.status !== "racing") return;
           if (player.status !== "racing") return;
 
-          const { index, accuracy: acc, wpm: pwpm } = msg;
-          const textLen = room.text.length;
-          player.progress = textLen > 0 ? Math.min(1, index / textLen) : 0;
-          player.accuracy = acc;
-          player.wpm = pwpm;
+          const { typed, keystrokes } = msg;
+          if (typeof typed !== "string") return;
+
+          const roomWords = room.text.split(" ");
+          const typedWords = typed.split(" ");
+
+          let correctChars = 0;
+
+          for (let i = 0; i < typedWords.length; i++) {
+            const expected = roomWords[i];
+            const actual = typedWords[i];
+
+            if (i === typedWords.length - 1) {
+              if (expected && actual && expected.startsWith(actual)) {
+                correctChars += actual.length;
+              }
+            } else {
+              if (actual === expected) {
+                correctChars += expected.length + 1;
+              }
+            }
+          }
+
+          const elapsedMin = (Date.now() - room.startTime) / 1000 / 60;
+          let wpm = Math.round((correctChars / 5) / Math.max(elapsedMin, 0.01));
+
+          if (wpm > 250) {
+            console.warn(`[Anti-Cheat] Player ${player.name} flagged for WPM: ${wpm}`);
+            wpm = 0;
+            correctChars = 0;
+          }
+
+          let progressVal = roomWords.length > 0 ? (typedWords.length - 1) / roomWords.length : 0;
+          if (typedWords.length === roomWords.length) {
+            const lastExpected = roomWords[roomWords.length - 1];
+            const lastActual = typedWords[typedWords.length - 1];
+            if (lastExpected && lastActual && lastActual.length >= lastExpected.length) {
+              progressVal = 1;
+            }
+          }
+          if (typed.length >= room.text.length) {
+            progressVal = 1;
+          }
+          player.progress = Math.min(1, Math.max(0, progressVal));
+          player.accuracy = keystrokes > 0 ? Math.min(100, Math.round((correctChars / keystrokes) * 100)) : 100;
+          player.wpm = wpm;
 
           if (player.progress >= 1 && player.status === "racing") {
-            player.status = "completed";
-            player.finishTime = Date.now() - room.startTime;
+            const elapsedSeconds = (Date.now() - room.startTime) / 1000;
+            if (elapsedSeconds < 2) {
+              console.warn(`[Anti-Cheat] Player ${player.name} finished instantly in ${elapsedSeconds}s`);
+              player.status = "cheated";
+              player.progress = 0;
+              player.wpm = 0;
+            } else {
+              player.status = "completed";
+              player.finishTime = Date.now() - room.startTime;
 
-            broadcast(roomId, {
-              type: "player_finished",
-              playerId: player.id,
-              name: player.name,
-              wpm: player.wpm,
-              accuracy: player.accuracy,
-              finishTime: player.finishTime,
-              players: serializePlayers(room),
-            });
+              broadcast(roomId, {
+                type: "player_finished",
+                playerId: player.id,
+                name: player.name,
+                wpm: player.wpm,
+                accuracy: player.accuracy,
+                finishTime: player.finishTime,
+                players: serializePlayers(room),
+              });
 
-            checkGameFinished(roomId);
+              checkGameFinished(roomId);
+            }
           }
           break;
         }
@@ -368,6 +521,10 @@ function checkGameFinished(roomId) {
     p.status === "completed" || p.status === "disconnected"
   );
   if (allDone) {
+    if (room.finishCheckTimer) {
+      clearTimeout(room.finishCheckTimer);
+      room.finishCheckTimer = null;
+    }
     room.status = "finished";
     broadcast(roomId, {
       type: "game_finished",

@@ -1,14 +1,20 @@
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Keyboard, BarChart3, Sparkles, Trophy, User, Settings, Menu, X, Zap } from "lucide-react";
 import ThemeSwitcher from "./ThemeSwitcher";
 
 export default function NavBar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const navItems = [
     { name: "Test", href: "/test", icon: Keyboard },
@@ -36,7 +42,7 @@ export default function NavBar() {
             <div className="flex space-x-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
-                const isActive = pathname === item.href;
+                const isActive = mounted && pathname === item.href;
                 return (
                   <Link
                     key={item.name}
@@ -79,7 +85,7 @@ export default function NavBar() {
         <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href;
+            const isActive = mounted && pathname === item.href;
             return (
               <Link
                 key={item.name}

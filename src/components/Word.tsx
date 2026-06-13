@@ -116,15 +116,15 @@ const Word: React.FC<WordProps> = ({
         const isCharTyped = item.index < typedLength;
 
         if (isPast) {
-          // Completed words: fade correct ones to help user focus on active word
+          // Completed words: remain solid white, do NOT fade
           if (item.isExtra) {
-            charClass = "text-error/70";
+            charClass = "text-error";
           } else {
             const typedChar = typed[item.index];
             if (typedChar === item.char) {
-              charClass = "text-muted-soft/35";
+              charClass = "text-foreground";
             } else {
-              charClass = "text-error/65";
+              charClass = "text-error";
             }
           }
         } else if (isActive) {

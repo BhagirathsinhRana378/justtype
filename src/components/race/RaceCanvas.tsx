@@ -378,7 +378,7 @@ export default function RaceCanvas({ players, myPlayerId, isRacing }: RaceCanvas
     <canvas
       ref={canvasRef}
       className="w-full h-full block rounded-xl"
-      style={{ background: "var(--card, #151018)", minHeight: "260px", maxHeight: "400px" }}
+      style={{ background: "var(--card, #151018)", minHeight: "210px", maxHeight: "300px" }}
     />
   );
 }

@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useRaceEngine } from "@/hooks/useRaceEngine";
 import RaceCanvas from "@/components/race/RaceCanvas";
 import Word from "@/components/Word";
-import { ArrowLeft, Trophy, RotateCcw, Timer, Activity, Cpu, Users, Target, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Trophy, RotateCcw, Timer, Activity, Cpu, Users, Target, CheckCircle2, AlertTriangle } from "lucide-react";
 
 const AI_WORDS = [
   "the","and","of","to","in","is","you","that","it","he","was","for","on","are","as","with","his","they","at","be",
@@ -25,24 +25,90 @@ const AI_WORDS = [
   "border","shadow","margin","padding","height","width","window","object","string","cursor"
 ];
 
-function genAIText(len = 25) {
+const COMMON_WORDS = [
+  "the", "be", "to", "of", "and", "a", "in", "that", "have", "i", "it", "for", "not", "on", "with", "he", "as", "you", "do", "at",
+  "this", "but", "his", "by", "from", "they", "we", "say", "her", "she", "or", "an", "will", "my", "one", "all", "would", "there", "their", "what",
+  "so", "up", "out", "if", "about", "who", "get", "which", "go", "me", "when", "make", "can", "like", "time", "no", "just", "him", "know", "take",
+  "people", "into", "year", "your", "good", "some", "could", "them", "see", "other", "than", "then", "now", "look", "only", "come", "its", "over", "think", "also",
+  "back", "after", "use", "two", "how", "our", "work", "first", "well", "way", "even", "new", "want", "because", "any", "these", "give", "day", "most", "us"
+];
+
+const QUOTES = [
+  "To be or not to be, that is the question.",
+  "All that glitters is not gold.",
+  "A journey of a thousand miles begins with a single step.",
+  "In the middle of difficulty lies opportunity.",
+  "Success is not final, failure is not fatal: it is the courage to continue that counts.",
+  "Believe you can and you're halfway there.",
+  "What lies behind us and what lies before us are tiny matters compared to what lies within us.",
+  "The only way to do great work is to love what you do.",
+  "Strive not to be a success, but rather to be of value.",
+  "Do not go where the path may lead, go instead where there is no path and leave a trail.",
+  "Life is what happens when you're busy making other plans.",
+  "The future belongs to those who believe in the beauty of their dreams."
+];
+
+const CODE_SNIPPETS = [
+  "const [state, setState] = useState(initial);",
+  "function add(a, b) { return a + b; }",
+  "import React, { useEffect } from 'react';",
+  "const result = items.filter(x => x.active);",
+  "export default function App() { return <div />; }",
+  "const elapsed = (Date.now() - startTime) / 1000;",
+  "const wpm = Math.round((correctChars / 5) / elapsed);",
+  "try { await fetchData(); } catch (err) { console.error(err); }",
+  "if (user.isAdmin) { showDashboard(); } else { redirect(); }",
+  "const promise = new Promise((resolve) => setTimeout(resolve, 100));"
+];
+
+function genNumbersText(len: number) {
   const out = [];
-  for (let i = 0; i < len; i++) out.push(AI_WORDS[Math.floor(Math.random() * AI_WORDS.length)]);
+  for (let i = 0; i < len; i++) {
+    out.push(Math.floor(Math.random() * 9000 + 1000).toString());
+  }
+  return out.join(" ");
+}
+
+function getAIText(textType: string, wordCount: number, customText?: string) {
+  if (textType === "custom" && customText) {
+    return customText.trim().replace(/\s+/g, " ");
+  }
+  if (textType === "quotes") {
+    return QUOTES[Math.floor(Math.random() * QUOTES.length)];
+  }
+  if (textType === "code") {
+    return CODE_SNIPPETS[Math.floor(Math.random() * CODE_SNIPPETS.length)];
+  }
+  if (textType === "numbers") {
+    return genNumbersText(wordCount);
+  }
+  
+  const wordList = textType === "common" ? COMMON_WORDS : AI_WORDS;
+  const out = [];
+  for (let i = 0; i < wordCount; i++) {
+    out.push(wordList[Math.floor(Math.random() * wordList.length)]);
+  }
   return out.join(" ");
 }
 
 const DIFFICULTY_CONFIG = {
-  easy: { targetWpm: 40, variance: 0.2 },
-  medium: { targetWpm: 62, variance: 0.2 },
-  hard: { targetWpm: 90, variance: 0.2 },
+  easy: { targetWpm: 40, variance: 0.15 },
+  medium: { targetWpm: 60, variance: 0.15 },
+  hard: { targetWpm: 90, variance: 0.15 },
+  adaptive: { targetWpm: 60, variance: 0.15 },
 };
 
 export default function AIClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  
   const playerName = searchParams.get("name") || "AI Racer";
   const diffKey = (searchParams.get("diff") || "medium") as keyof typeof DIFFICULTY_CONFIG;
   const diff = DIFFICULTY_CONFIG[diffKey] || DIFFICULTY_CONFIG.medium;
+  const durationParam = searchParams.get("duration") || "unlimited";
+  const durationSec = durationParam !== "unlimited" ? parseInt(durationParam) : null;
+  const strictnessParam = searchParams.get("strictness") || "relaxed";
+  const goalParam = searchParams.get("goal") || "finish";
 
   const [phase, setPhase] = useState<"idle" | "countdown" | "racing" | "finished">("idle");
   const [countdown, setCountdown] = useState(0);
@@ -54,6 +120,7 @@ export default function AIClient() {
   const [aiAccuracy, setAiAccuracy] = useState(100);
   const [aiStatus, setAiStatus] = useState<"racing" | "completed">("racing");
   const [focused, setFocused] = useState(false);
+  const [revertTrigger, setRevertTrigger] = useState(0);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const aiProgressRef = useRef(0);
@@ -63,14 +130,24 @@ export default function AIClient() {
   const aiIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const {
-    typedInput, wpm, accuracy, progress, handleInput, reset: resetEngine,
-  } = useRaceEngine(words);
+    typedInput, wpm, accuracy, progress, handleInput, reset: resetEngine, feedback, totalKeystrokes, isComplete,
+  } = useRaceEngine(words, { strict: strictnessParam === "strict" });
 
   const typedWords = useMemo(() => typedInput.split(" "), [typedInput]);
   const activeWordIndex = useMemo(() => Math.max(0, typedWords.length - 1), [typedWords]);
 
+  // Keep a ref of player WPM to feed to the Adaptive AI without recreating the interval
+  const playerWpmRef = useRef(wpm);
+  useEffect(() => {
+    playerWpmRef.current = wpm;
+  }, [wpm]);
+
   const startRace = () => {
-    const t = genAIText(25);
+    const textTypeParam = searchParams.get("textType") || "random";
+    const wordCountParam = parseInt(searchParams.get("wordCount") || "25") || 25;
+    const customTextParam = searchParams.get("customText") || "";
+    
+    const t = getAIText(textTypeParam, wordCountParam, customTextParam);
     setText(t);
     setWords(t.split(" "));
     setPhase("countdown");
@@ -111,7 +188,12 @@ export default function AIClient() {
     }
 
     aiIntervalRef.current = setInterval(() => {
-      const baseCharsPerMin = diff.targetWpm * 5;
+      let targetWpm = diff.targetWpm;
+      if (diffKey === "adaptive") {
+        targetWpm = Math.max(30, playerWpmRef.current + (Math.random() > 0.55 ? 3 : -1));
+      }
+      
+      const baseCharsPerMin = targetWpm * 5;
       const charsPerTick = (baseCharsPerMin / 600) * (1 + (Math.random() - 0.5) * diff.variance);
       aiProgressRef.current = Math.min(1, aiProgressRef.current + charsPerTick / text.length);
 
@@ -133,48 +215,94 @@ export default function AIClient() {
     return () => {
       if (aiIntervalRef.current) { window.clearInterval(aiIntervalRef.current); aiIntervalRef.current = null; }
     };
-  }, [phase, text, diff]);
+  }, [phase, text, diff, diffKey]);
 
-  // Timer
+  // Timer & Duration limit
   useEffect(() => {
     if (phase !== "racing") { setRaceElapsed(0); return; }
     const start = Date.now();
-    const iv = setInterval(() => setRaceElapsed(Math.floor((Date.now() - start) / 1000)), 1000);
+    const iv = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - start) / 1000);
+      setRaceElapsed(elapsed);
+      if (durationSec && elapsed >= durationSec) {
+        clearInterval(iv);
+        finishTimeRef.current = Date.now();
+        setPhase("finished");
+      }
+    }, 1000);
     return () => clearInterval(iv);
-  }, [phase]);
+  }, [phase, durationSec]);
 
   // Detect finish
   useEffect(() => {
     if (phase !== "racing") return;
-    const myDone = typedInput.length >= text.length && text.length > 0;
-    if (myDone && !finishTimeRef.current) {
+    if (isComplete && !finishTimeRef.current) {
       finishTimeRef.current = Date.now();
       setPhase("finished");
     }
     if (aiFinishedRef.current && finishTimeRef.current) {
       setPhase("finished");
     }
-  }, [typedInput, text, phase]);
+  }, [isComplete, phase]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    if (feedback === "error" || feedback === "blocked") {
+      el.classList.remove("animate-shake", "animate-red-flash", "animate-green-pulse");
+      void el.offsetWidth; // force reflow
+      el.classList.add("animate-shake", "animate-red-flash");
+    } else if (feedback === "correct") {
+      el.classList.remove("animate-shake", "animate-red-flash", "animate-green-pulse");
+      void el.offsetWidth; // force reflow
+      el.classList.add("animate-green-pulse");
+    }
+  }, [feedback, totalKeystrokes]);
 
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (phase !== "racing") return;
-    handleInput(e.target.value);
+    const val = e.target.value;
+    const metrics = handleInput(val, e.nativeEvent);
+
+    if (metrics.isError) {
+      e.target.value = typedInput;
+      setRevertTrigger(prev => prev + 1);
+      return;
+    }
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (phase !== "racing") return;
+
+    if (e.key === "Enter") {
+      e.preventDefault();
+    }
   };
 
   const players = useMemo(() => {
     const myDone = phase === "finished" && finishTimeRef.current > 0;
     return [
-      { id: "me", name: playerName, progress: text.length ? typedInput.length / text.length : 0, wpm, accuracy, status: (myDone ? "completed" : "racing") as "racing" | "completed", finishTime: myDone ? finishTimeRef.current : 0 },
+      { id: "me", name: playerName, progress, wpm, accuracy, status: (myDone ? "completed" : "racing") as "racing" | "completed", finishTime: myDone ? finishTimeRef.current : 0 },
       { id: "ai", name: "AI", progress: aiProgress, wpm: aiWpm, accuracy: aiAccuracy, status: aiStatus, finishTime: aiFinishedRef.current && finishTimeRef.current ? finishTimeRef.current + 2000 : 0 },
     ];
-  }, [playerName, typedInput, text, wpm, accuracy, phase, aiProgress, aiWpm, aiAccuracy, aiStatus]);
+  }, [playerName, progress, wpm, accuracy, phase, aiProgress, aiWpm, aiAccuracy, aiStatus]);
 
   const sortedResults = useMemo(() => {
     const completed = [...players].filter((p: any) => p.status === "completed");
     const others = [...players].filter((p: any) => p.status !== "completed");
-    completed.sort((a: any, b: any) => (a.finishTime || Infinity) - (b.finishTime || Infinity));
+    
+    if (goalParam === "accuracy") {
+      completed.sort((a: any, b: any) => b.accuracy - a.accuracy || b.wpm - a.wpm);
+    } else if (goalParam === "balanced") {
+      const score = (p: any) => p.wpm * (p.accuracy / 100);
+      completed.sort((a: any, b: any) => score(b) - score(a));
+    } else {
+      completed.sort((a: any, b: any) => (a.finishTime || Infinity) - (b.finishTime || Infinity));
+    }
+    
     return [...completed, ...others];
-  }, [players]);
+  }, [players, goalParam]);
 
   const position = useMemo(() => {
     const me = players[0];
@@ -189,6 +317,7 @@ export default function AIClient() {
 
   useEffect(() => {
     wordRefs.current = [];
+    setTranslateY(0);
   }, [words]);
 
   useEffect(() => {
@@ -247,15 +376,19 @@ export default function AIClient() {
             <div>
               <div className="text-[9px] text-muted-soft uppercase font-bold tracking-wider font-mono">AI Race</div>
               <div className="text-[10px] text-primary font-semibold flex items-center gap-1">
-                <Cpu className="w-3 h-3" /> {diffKey} · {diff.targetWpm} WPM target
+                <Cpu className="w-3 h-3" /> {diffKey} · {diffKey === "adaptive" ? "Adaptive WPM" : `${diff.targetWpm} WPM`}
               </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
             {phase === "racing" && (
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-background/50 border border-border-hairline">
-                <Timer className="w-3 h-3 text-primary" />
-                <span className="font-mono text-xs font-bold">{Math.floor(raceElapsed / 60)}:{(raceElapsed % 60).toString().padStart(2, "0")}</span>
+                <Timer className="w-3 h-3 text-primary animate-pulse" />
+                <span className="font-mono text-xs font-bold">
+                  {durationSec 
+                    ? `${Math.max(0, durationSec - raceElapsed)}s left` 
+                    : `${Math.floor(raceElapsed / 60)}:${(raceElapsed % 60).toString().padStart(2, "0")}`}
+                </span>
               </div>
             )}
             <span className="text-[8px] text-muted-soft font-mono flex items-center gap-1">
@@ -264,11 +397,11 @@ export default function AIClient() {
           </div>
         </div>
 
-        <div className="bg-card border border-border-hairline rounded-xl overflow-hidden shadow-lg flex-1 min-h-[240px] relative backdrop-blur-md">
+        <div className="bg-card border border-border-hairline rounded-xl overflow-hidden shadow-lg flex-1 min-h-[190px] relative backdrop-blur-md">
           {phase === "racing" || phase === "finished" ? (
             <RaceCanvas players={players} myPlayerId="me" isRacing={phase === "racing"} />
           ) : (
-            <div className="w-full h-full min-h-[240px] flex items-center justify-center bg-card/30">
+            <div className="w-full h-full min-h-[190px] flex items-center justify-center bg-card/30">
               <div className="text-center px-4">
                 <Users className="w-10 h-10 text-primary/40 mx-auto mb-2" />
                 <p className="text-[11px] text-muted-soft">Race track will appear here</p>
@@ -277,7 +410,7 @@ export default function AIClient() {
           )}
         </div>
 
-        <div className={`bg-card border rounded-xl relative backdrop-blur-md transition-all duration-300 ${focused ? "border-primary/40 shadow-[0_0_20px_rgba(204,120,92,0.08)] bg-card/75" : "border-border-hairline"}`}>
+        <div ref={containerRef} className={`bg-card border rounded-xl relative backdrop-blur-md transition-all duration-300 ${focused ? "border-primary/40 shadow-[0_0_20px_rgba(204,120,92,0.08)] bg-card/75" : "border-border-hairline"}`}>
           {phase === "countdown" && (
             <div className="flex flex-col items-center justify-center py-8 animate-pulse">
               <span className="text-[10px] text-muted-soft uppercase font-bold tracking-wider mb-1">Race starting</span>
@@ -304,12 +437,11 @@ export default function AIClient() {
                 ))}
               </div>
               <div 
-                ref={containerRef} 
                 onClick={() => inputRef.current?.focus()} 
                 className="relative cursor-text select-none overflow-hidden py-6 px-6" 
                 style={{ 
-                  height: "calc(3 * var(--typing-font-size) * var(--typing-line-height) + 2rem)",
-                  minHeight: "180px"
+                  height: "calc(3.5 * var(--typing-font-size) * var(--typing-line-height) + 2rem)",
+                  minHeight: "240px"
                 }}
               >
                 {!focused && (
@@ -334,8 +466,19 @@ export default function AIClient() {
                   </div>
                 </div>
               </div>
+              
+              {feedback === "blocked" && (
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-error/95 text-on-error px-4 py-1.5 rounded-lg border border-error-border shadow-lg flex items-center gap-1.5 text-[10px] font-bold font-mono tracking-wide z-30 animate-bounce">
+                  <AlertTriangle className="w-3.5 h-3.5 text-accent-amber animate-pulse" />
+                  <span>Finish this word to continue</span>
+                </div>
+              )}
+
               <input ref={inputRef} type="text" value={typedInput} onChange={onChange}
+                onKeyDown={onKeyDown}
                 onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+                onPaste={(e) => e.preventDefault()}
+                data-revert={revertTrigger}
                 className="absolute opacity-0 w-0 h-0 pointer-events-none"
                 autoComplete="off" autoCapitalize="off" autoCorrect="off" spellCheck={false} />
             </div>
@@ -350,20 +493,36 @@ export default function AIClient() {
               </p>
               <div className="w-full max-w-sm border border-border-hairline rounded-lg overflow-hidden bg-background mb-4">
                 <div className="grid grid-cols-12 bg-card border-b border-border-hairline px-3 py-1.5 text-[9px] font-bold text-muted-soft">
-                  <span className="col-span-4 text-center">#</span>
+                  <span className="col-span-2 text-center">#</span>
                   <span className="col-span-4">Player</span>
-                  <span className="col-span-4 text-center">WPM</span>
+                  <span className="col-span-3 text-center">
+                    {goalParam === "accuracy" ? "Accuracy" : goalParam === "balanced" ? "Score" : "WPM"}
+                  </span>
+                  <span className="col-span-3 text-center">
+                    {goalParam === "finish" ? "Time" : "WPM"}
+                  </span>
                 </div>
-                {sortedResults.map((p: any, idx: number) => (
-                  <div key={p.id} className={`grid grid-cols-12 px-3 py-2 text-xs items-center ${p.id === "me" ? "bg-primary/5 font-bold" : ""}`}>
-                    <span className="col-span-4 text-center font-mono text-primary font-bold">#{idx + 1}</span>
-                    <span className="col-span-4 flex items-center gap-1 truncate">
-                      <span className={`w-1.5 h-1.5 rounded-full ${p.status === "completed" ? "bg-success" : "bg-error"} shrink-0`} />
-                      {p.name}
-                    </span>
-                    <span className="col-span-4 text-center font-mono">{Math.round(p.wpm)}</span>
-                  </div>
-                ))}
+                {sortedResults.map((p: any, idx: number) => {
+                  const scoreVal = Math.round(p.wpm * (p.accuracy / 100));
+                  return (
+                    <div key={p.id} className={`grid grid-cols-12 px-3 py-2 text-xs items-center ${p.id === "me" ? "bg-primary/5 font-bold" : ""}`}>
+                      <span className="col-span-2 text-center font-mono text-primary font-bold">#{idx + 1}</span>
+                      <span className="col-span-4 flex items-center gap-1 truncate">
+                        <span className={`w-1.5 h-1.5 rounded-full ${p.status === "completed" ? "bg-success" : "bg-error"} shrink-0`} />
+                        {p.name}
+                      </span>
+                      <span className="col-span-3 text-center font-mono">
+                        {goalParam === "accuracy" ? `${Math.round(p.accuracy)}%` : goalParam === "balanced" ? scoreVal : Math.round(p.wpm)}
+                      </span>
+                      <span className="col-span-3 text-center font-mono">
+                        {goalParam === "finish" 
+                          ? (p.finishTime ? `${(p.finishTime / 1000).toFixed(1)}s` : "-")
+                          : Math.round(p.wpm)
+                        }
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
               <button onClick={rematch} className="px-5 py-2 bg-primary text-on-primary font-bold text-xs rounded-lg hover:bg-primary-hover cursor-pointer flex items-center gap-1.5 transition-all">
                 <RotateCcw className="w-3.5 h-3.5" /> Race Again
@@ -378,8 +537,34 @@ export default function AIClient() {
         .animate-fadeIn { animation: fadeIn 0.3s ease-out forwards; }
         @keyframes countdown-pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.1); } }
         .race-countdown-number { animation: countdown-pulse 1s ease-in-out infinite; }
+
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          20%, 60% { transform: translateX(-4px); }
+          40%, 80% { transform: translateX(4px); }
+        }
+        .animate-shake {
+          animation: shake 0.25s ease-in-out;
+        }
+
+        @keyframes red-flash {
+          0% { border-color: rgba(239, 68, 68, 0.2); box-shadow: 0 0 0 rgba(239, 68, 68, 0); }
+          50% { border-color: rgba(239, 68, 68, 0.8); box-shadow: 0 0 15px rgba(239, 68, 68, 0.3); }
+          100% { border-color: rgba(239, 68, 68, 0.2); box-shadow: 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        .animate-red-flash {
+          animation: red-flash 0.4s ease-in-out;
+        }
+
+        @keyframes green-pulse {
+          0% { border-color: rgba(16, 185, 129, 0.2); box-shadow: 0 0 0 rgba(16, 185, 129, 0); }
+          50% { border-color: rgba(16, 185, 129, 0.8); box-shadow: 0 0 15px rgba(16, 185, 129, 0.3); }
+          100% { border-color: rgba(16, 185, 129, 0.2); box-shadow: 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        .animate-green-pulse {
+          animation: green-pulse 0.4s ease-in-out;
+        }
       `}</style>
     </div>
   );
 }
-

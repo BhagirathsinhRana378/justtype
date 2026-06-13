@@ -41,7 +41,7 @@ interface RaceStore {
   resetRoom: () => void;
 }
 
-export const useRaceStore = create<RaceStore>((set, get) => ({
+export const useRaceStore = create<RaceStore>((set) => ({
   playerName: "",
   roomId: "",
   roomStatus: "idle",
