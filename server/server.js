@@ -14,9 +14,11 @@ const WORDS = [
   "engine","growth","sprint","memory","mistake","routine","program","develop","complex","elegant","minimal","builder",
   "layout","control","command","trigger","resolve","warning","optimal","systems","digital","product","network","service",
   "dynamic","balance","perfect","profile","numbers","context","history","support","process",
-  "mechanical","optimization","synchronous","asynchronous","configuration","telemetry","analytical","regression",
-  "consistency","performance","calibration","discipline","compatibility","consequences","acceleration",
-  "extraordinary","unprecedented","implementation","infrastructure","representative",
+  "people","number","water","sound","years","thing","think","great","every","under","found","still","between","never",
+  "start","another","course","family","always","country","system","school","group","during","without","before","study",
+  "almost","change","design","manage","project","simple","active","future","nature","modern","focus","custom","device",
+  "visual","source","output","create","import","render","client","server","button","screen","canvas","header","footer",
+  "border","shadow","margin","padding","height","width","window","object","string","cursor"
 ];
 
 function genText(len = 25) {
@@ -64,7 +66,63 @@ wss.on("connection", (ws) => {
         case "create_room": {
           const id = msg.roomId || genId();
           if (rooms.has(id)) {
-            ws.send(JSON.stringify({ type: "error", message: "Room code already taken. Try again." }));
+            const room = rooms.get(id);
+            if (room.status === "racing") {
+              ws.send(JSON.stringify({ type: "error", message: "Race already in progress" }));
+              break;
+            }
+            
+            // Re-creating or re-joining: treat as join room
+            const name = (msg.name || "Player").slice(0, 16);
+            const existing = room.players.find(p => p.name === name && p.status === "waiting");
+            if (existing) {
+              room.players = room.players.filter(p => p !== existing);
+            }
+
+            player = {
+              id: genId(),
+              name,
+              ws,
+              progress: 0,
+              wpm: 0,
+              accuracy: 100,
+              status: "waiting",
+            };
+
+            room.players.push(player);
+            roomId = id;
+
+            // If room was finished, reset room back to waiting lobby status
+            if (room.status === "finished") {
+              room.status = "waiting";
+              room.text = genText(25);
+              room.startTime = null;
+              if (room.finishCheckTimer) {
+                clearTimeout(room.finishCheckTimer);
+                room.finishCheckTimer = null;
+              }
+              room.players.forEach(p => {
+                p.status = "waiting";
+                p.progress = 0;
+                p.wpm = 0;
+                p.accuracy = 100;
+                p.finishTime = 0;
+              });
+            }
+
+            ws.send(JSON.stringify({
+              type: "room_joined",
+              roomId: id,
+              player: { id: player.id, name: player.name },
+              text: room.text,
+              players: serializePlayers(room),
+            }));
+
+            broadcast(id, {
+              type: "player_joined",
+              players: serializePlayers(room),
+              roomStatus: room.status,
+            });
             break;
           }
           const text = genText(25);
@@ -111,7 +169,7 @@ wss.on("connection", (ws) => {
             break;
           }
 
-          if (room.status === "racing" || room.status === "finished") {
+          if (room.status === "racing") {
             ws.send(JSON.stringify({ type: "error", message: "Race already in progress" }));
             break;
           }
@@ -135,6 +193,24 @@ wss.on("connection", (ws) => {
           room.players.push(player);
           roomId = id;
 
+          // If room was finished, reset room back to waiting lobby status
+          if (room.status === "finished") {
+            room.status = "waiting";
+            room.text = genText(25);
+            room.startTime = null;
+            if (room.finishCheckTimer) {
+              clearTimeout(room.finishCheckTimer);
+              room.finishCheckTimer = null;
+            }
+            room.players.forEach(p => {
+              p.status = "waiting";
+              p.progress = 0;
+              p.wpm = 0;
+              p.accuracy = 100;
+              p.finishTime = 0;
+            });
+          }
+
           ws.send(JSON.stringify({
             type: "room_joined",
             roomId: id,
@@ -145,6 +221,42 @@ wss.on("connection", (ws) => {
 
           broadcast(id, {
             type: "player_joined",
+            players: serializePlayers(room),
+            roomStatus: room.status,
+          });
+          break;
+        }
+
+        case "play_again": {
+          if (!player || !roomId) return;
+          const room = rooms.get(roomId);
+          if (!room) return;
+
+          // Only allow resetting if the room is in finished state
+          if (room.status !== "finished") return;
+
+          // Reset room status
+          room.status = "waiting";
+          room.text = genText(25);
+          room.startTime = null;
+          if (room.finishCheckTimer) {
+            clearTimeout(room.finishCheckTimer);
+            room.finishCheckTimer = null;
+          }
+
+          // Reset all players in the room
+          room.players.forEach(p => {
+            p.status = "waiting";
+            p.progress = 0;
+            p.wpm = 0;
+            p.accuracy = 100;
+            p.finishTime = 0;
+          });
+
+          // Broadcast to all players in the room that the room has been reset
+          broadcast(roomId, {
+            type: "room_reset",
+            text: room.text,
             players: serializePlayers(room),
           });
           break;

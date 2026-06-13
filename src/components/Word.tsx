@@ -105,6 +105,7 @@ const Word: React.FC<WordProps> = ({
             top: caretType === "underline" ? "90%" : "12%",
             transition: "left var(--cursor-speed, 40ms) linear",
             zIndex: caretType === "block" ? -1 : 10,
+            animation: !isTyping ? "blink 1s step-end infinite" : "none",
           }}
         />
       )}
@@ -115,15 +116,15 @@ const Word: React.FC<WordProps> = ({
         const isCharTyped = item.index < typedLength;
 
         if (isPast) {
-          // Completed words: remain solid white, do NOT fade
+          // Completed words: fade correct ones to help user focus on active word
           if (item.isExtra) {
-            charClass = "text-error";
+            charClass = "text-error/70";
           } else {
             const typedChar = typed[item.index];
             if (typedChar === item.char) {
-              charClass = "text-foreground";
+              charClass = "text-muted-soft/35";
             } else {
-              charClass = "text-error";
+              charClass = "text-error/65";
             }
           }
         } else if (isActive) {
@@ -134,7 +135,7 @@ const Word: React.FC<WordProps> = ({
             } else {
               const typedChar = typed[item.index];
               if (typedChar === item.char) {
-                charClass = "text-foreground"; // Transition immediately to solid white
+                charClass = "text-foreground font-semibold"; // Transition immediately to solid white
               } else {
                 charClass = "text-error"; // Soft muted red
               }

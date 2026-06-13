@@ -7,7 +7,7 @@ import { useRaceStore } from "@/store/useRaceStore";
 import { useRaceEngine } from "@/hooks/useRaceEngine";
 import RaceCanvas from "@/components/race/RaceCanvas";
 import Word from "@/components/Word";
-import { AlertTriangle, ArrowLeft, Copy, Users, Trophy, RotateCcw, Timer, Activity, Loader2 } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Copy, Users, Trophy, RotateCcw, Timer, Activity, Loader2, Target, CheckCircle2 } from "lucide-react";
 
 export default function FriendRaceClient() {
   const params = useParams();
@@ -27,6 +27,7 @@ export default function FriendRaceClient() {
   const [raceElapsed, setRaceElapsed] = useState(0);
   const [results, setResults] = useState<any[]>([]);
   const [focused, setFocused] = useState(false);
+  const lastProgressSentRef = useRef({ time: 0, index: -1 });
 
   const wsRef = useRef<WebSocket | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -35,6 +36,9 @@ export default function FriendRaceClient() {
   const {
     typedInput, wpm, accuracy, progress, handleInput, reset: resetEngine,
   } = useRaceEngine(words);
+
+  const typedWords = useMemo(() => typedInput.split(" "), [typedInput]);
+  const activeWordIndex = useMemo(() => Math.max(0, typedWords.length - 1), [typedWords]);
 
   const handleWSMessage = useCallback((msg: Record<string, any>) => {
     switch (msg.type) {
@@ -47,11 +51,20 @@ export default function FriendRaceClient() {
         store.setIsHost(msg.players[0]?.id === msg.player.id);
         setError(null);
         break;
+      case "room_reset":
+        store.setTextToType(msg.text);
+        store.setPlayers(msg.players);
+        store.setRoomStatus("waiting");
+        setResults([]);
+        resetEngine();
+        setError(null);
+        break;
       case "player_joined":
       case "player_ready":
       case "player_disconnected":
       case "player_left":
         if (msg.players) store.setPlayers(msg.players);
+        if (msg.roomStatus) store.setRoomStatus(msg.roomStatus);
         break;
       case "countdown_start":
         store.setRoomStatus("countdown");
@@ -153,13 +166,28 @@ export default function FriendRaceClient() {
     const val = e.target.value;
     const metrics = handleInput(val);
     const idx = val.length;
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
-        type: "progress",
-        index: idx,
-        accuracy: metrics.accuracy,
-        wpm: metrics.wpm,
-      }));
+
+    const lastProgressSent = lastProgressSentRef.current;
+    const now = Date.now();
+    const textLength = words.join(" ").length;
+    const isFinished = val.length >= textLength;
+    const isSpace = val.endsWith(" ");
+
+    if (
+      isFinished || 
+      isSpace || 
+      now - lastProgressSent.time > 150 || 
+      lastProgressSent.index === -1
+    ) {
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({
+          type: "progress",
+          index: idx,
+          accuracy: metrics.accuracy,
+          wpm: metrics.wpm,
+        }));
+        lastProgressSentRef.current = { time: now, index: idx };
+      }
     }
   };
 
@@ -186,7 +214,11 @@ export default function FriendRaceClient() {
     navigator.clipboard.writeText(roomId);
   };
 
-  const rematch = () => { window.location.reload(); };
+  const rematch = () => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: "play_again" }));
+    }
+  };
 
   const myPlayer = useMemo(() => players.find(p => p.id === myPlayerId), [players, myPlayerId]);
 
@@ -209,7 +241,6 @@ export default function FriendRaceClient() {
   const wordRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const [translateY, setTranslateY] = useState(0);
-  const activeWordIndex = useMemo(() => Math.max(0, typedInput.split(" ").length - 1), [typedInput]);
 
   useEffect(() => {
     wordRefs.current = [];
@@ -227,6 +258,33 @@ export default function FriendRaceClient() {
       }
     }
   }, [activeWordIndex]);
+
+  const renderedWords = useMemo(() => {
+    return words.map((word, wordIndex) => {
+      const isActive = wordIndex === activeWordIndex;
+      const isPast = wordIndex < activeWordIndex;
+
+      return (
+        <span
+          key={wordIndex}
+          ref={(el) => {
+            wordRefs.current[wordIndex] = el;
+          }}
+          className="inline-flex"
+        >
+          <Word
+            word={word}
+            wordIndex={wordIndex}
+            isActive={isActive}
+            isPast={isPast}
+            typed={typedWords[wordIndex]}
+            caretType="smooth"
+            isFocused={focused}
+          />
+        </span>
+      );
+    });
+  }, [words, activeWordIndex, typedWords, focused]);
 
   if (error) {
     return (
@@ -296,7 +354,7 @@ export default function FriendRaceClient() {
           )}
         </div>
 
-        <div className="bg-card border border-border-hairline rounded-xl relative backdrop-blur-md">
+        <div className={`bg-card border rounded-xl relative backdrop-blur-md transition-all duration-300 ${focused ? "border-primary/40 shadow-[0_0_20px_rgba(204,120,92,0.08)] bg-card/75" : "border-border-hairline"}`}>
           {roomStatus === "waiting" && (
             <div className="flex flex-col items-center py-5 px-4 animate-fadeIn">
               <h2 className="text-base font-bold mb-0.5">Waiting for Players</h2>
@@ -340,16 +398,19 @@ export default function FriendRaceClient() {
 
           {roomStatus === "racing" && (
             <div className="flex flex-col">
-              <div className="grid grid-cols-4 gap-1 px-3 py-2 bg-background/30 border-b border-border-hairline/30">
+              <div className="grid grid-cols-4 gap-2 p-2.5 bg-[#0d0711]/60 border-b border-border-hairline/30">
                 {[
-                  { label: "Pos", value: `#${position}`, c: "text-primary font-bold" },
-                  { label: "WPM", value: `${wpm}`, c: "" },
-                  { label: "Acc", value: `${accuracy}%`, c: "text-success" },
-                  { label: "Done", value: `${Math.round(progress * 100)}%`, c: "" },
+                  { label: "Position", value: `#${position}`, icon: <Trophy className="w-3.5 h-3.5 text-accent-amber" />, c: "text-accent-amber font-extrabold" },
+                  { label: "Speed", value: `${wpm} WPM`, icon: <Activity className="w-3.5 h-3.5 text-primary" />, c: "text-primary font-bold" },
+                  { label: "Accuracy", value: `${accuracy}%`, icon: <Target className="w-3.5 h-3.5 text-success" />, c: "text-success font-bold" },
+                  { label: "Progress", value: `${Math.round(progress * 100)}%`, icon: <CheckCircle2 className="w-3.5 h-3.5 text-muted-soft" />, c: "text-foreground font-bold" },
                 ].map(s => (
-                  <div key={s.label} className="text-center">
-                    <div className="text-[8px] uppercase font-bold text-muted-soft">{s.label}</div>
-                    <div className={`text-xs font-bold font-mono ${s.c}`}>{s.value}</div>
+                  <div key={s.label} className="flex flex-col items-center justify-center py-1.5 px-1 bg-card/25 border border-border-hairline/25 rounded-lg backdrop-blur-xs">
+                    <div className="flex items-center gap-1 mb-1">
+                      {s.icon}
+                      <span className="text-[8px] sm:text-[9px] uppercase font-bold tracking-wider text-muted-soft">{s.label}</span>
+                    </div>
+                    <div className={`text-sm sm:text-base font-black font-mono tracking-tight leading-none ${s.c}`}>{s.value}</div>
                   </div>
                 ))}
               </div>
@@ -380,30 +441,7 @@ export default function FriendRaceClient() {
                       letterSpacing: "var(--typing-letter-spacing)",
                     }}
                   >
-                    {words.map((word, wordIndex) => {
-                      const isActive = wordIndex === activeWordIndex;
-                      const isPast = wordIndex < activeWordIndex;
-
-                      return (
-                        <span
-                          key={wordIndex}
-                          ref={(el) => {
-                            wordRefs.current[wordIndex] = el;
-                          }}
-                          className="inline-flex"
-                        >
-                          <Word
-                            word={word}
-                            wordIndex={wordIndex}
-                            isActive={isActive}
-                            isPast={isPast}
-                            typed={typedInput.split(" ")[wordIndex]}
-                            caretType="smooth"
-                            isFocused={focused}
-                          />
-                        </span>
-                      );
-                    })}
+                    {renderedWords}
                   </div>
                 </div>
               </div>

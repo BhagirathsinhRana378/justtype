@@ -6,13 +6,23 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useRaceEngine } from "@/hooks/useRaceEngine";
 import RaceCanvas from "@/components/race/RaceCanvas";
 import Word from "@/components/Word";
-import { ArrowLeft, Trophy, RotateCcw, Timer, Activity, Cpu, Users } from "lucide-react";
+import { ArrowLeft, Trophy, RotateCcw, Timer, Activity, Cpu, Users, Target, CheckCircle2 } from "lucide-react";
 
 const AI_WORDS = [
   "the","and","of","to","in","is","you","that","it","he","was","for","on","are","as","with","his","they","at","be",
   "this","have","from","one","had","by","word","but","not","what","all","were","we","when","your","can","said","use",
   "an","each","she","do","how","if","will","up","out","many","then","them","so","some","her","make","like","him","into",
-  "time","has","look","two","more","go","see","no","way","my","than","call","who",
+  "time","has","look","two","more","go","see","no","way","my","than","call","who","oil","its","now","find","long",
+  "down","day","did","get","come","made","may","part","new","take","get","place","made","live","back","give","most","very",
+  "about","above","across","action","answer","around","better","faster","typing","science","measure","rhythm","cadence",
+  "engine","growth","sprint","memory","mistake","routine","program","develop","complex","elegant","minimal","builder",
+  "layout","control","command","trigger","resolve","warning","optimal","systems","digital","product","network","service",
+  "dynamic","balance","perfect","profile","numbers","context","history","support","process",
+  "people","number","water","sound","years","thing","think","great","every","under","found","still","between","never",
+  "start","another","course","family","always","country","system","school","group","during","without","before","study",
+  "almost","change","design","manage","project","simple","active","future","nature","modern","focus","custom","device",
+  "visual","source","output","create","import","render","client","server","button","screen","canvas","header","footer",
+  "border","shadow","margin","padding","height","width","window","object","string","cursor"
 ];
 
 function genAIText(len = 25) {
@@ -55,6 +65,9 @@ export default function AIClient() {
   const {
     typedInput, wpm, accuracy, progress, handleInput, reset: resetEngine,
   } = useRaceEngine(words);
+
+  const typedWords = useMemo(() => typedInput.split(" "), [typedInput]);
+  const activeWordIndex = useMemo(() => Math.max(0, typedWords.length - 1), [typedWords]);
 
   const startRace = () => {
     const t = genAIText(25);
@@ -173,7 +186,6 @@ export default function AIClient() {
   const wordRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const [translateY, setTranslateY] = useState(0);
-  const activeWordIndex = useMemo(() => Math.max(0, typedInput.split(" ").length - 1), [typedInput]);
 
   useEffect(() => {
     wordRefs.current = [];
@@ -191,6 +203,33 @@ export default function AIClient() {
       }
     }
   }, [activeWordIndex]);
+
+  const renderedWords = useMemo(() => {
+    return words.map((word, wordIndex) => {
+      const isActive = wordIndex === activeWordIndex;
+      const isPast = wordIndex < activeWordIndex;
+
+      return (
+        <span
+          key={wordIndex}
+          ref={(el) => {
+            wordRefs.current[wordIndex] = el;
+          }}
+          className="inline-flex"
+        >
+          <Word
+            word={word}
+            wordIndex={wordIndex}
+            isActive={isActive}
+            isPast={isPast}
+            typed={typedWords[wordIndex]}
+            caretType="smooth"
+            isFocused={focused}
+          />
+        </span>
+      );
+    });
+  }, [words, activeWordIndex, typedWords, focused]);
 
   const rematch = () => {
     resetEngine();
@@ -238,7 +277,7 @@ export default function AIClient() {
           )}
         </div>
 
-        <div className="bg-card border border-border-hairline rounded-xl relative backdrop-blur-md">
+        <div className={`bg-card border rounded-xl relative backdrop-blur-md transition-all duration-300 ${focused ? "border-primary/40 shadow-[0_0_20px_rgba(204,120,92,0.08)] bg-card/75" : "border-border-hairline"}`}>
           {phase === "countdown" && (
             <div className="flex flex-col items-center justify-center py-8 animate-pulse">
               <span className="text-[10px] text-muted-soft uppercase font-bold tracking-wider mb-1">Race starting</span>
@@ -248,16 +287,19 @@ export default function AIClient() {
 
           {phase === "racing" && (
             <div className="flex flex-col">
-              <div className="grid grid-cols-4 gap-1 px-3 py-2 bg-background/30 border-b border-border-hairline/30">
+              <div className="grid grid-cols-4 gap-2 p-2.5 bg-[#0d0711]/60 border-b border-border-hairline/30">
                 {[
-                  { label: "Pos", value: `#${position}`, c: "text-primary font-bold" },
-                  { label: "WPM", value: `${wpm}`, c: "" },
-                  { label: "Acc", value: `${accuracy}%`, c: "text-success" },
-                  { label: "Done", value: `${Math.round(progress * 100)}%`, c: "" },
+                  { label: "Position", value: `#${position}`, icon: <Trophy className="w-3.5 h-3.5 text-accent-amber" />, c: "text-accent-amber font-extrabold" },
+                  { label: "Speed", value: `${wpm} WPM`, icon: <Activity className="w-3.5 h-3.5 text-primary" />, c: "text-primary font-bold" },
+                  { label: "Accuracy", value: `${accuracy}%`, icon: <Target className="w-3.5 h-3.5 text-success" />, c: "text-success font-bold" },
+                  { label: "Progress", value: `${Math.round(progress * 100)}%`, icon: <CheckCircle2 className="w-3.5 h-3.5 text-muted-soft" />, c: "text-foreground font-bold" },
                 ].map(s => (
-                  <div key={s.label} className="text-center">
-                    <div className="text-[8px] uppercase font-bold text-muted-soft">{s.label}</div>
-                    <div className={`text-xs font-bold font-mono ${s.c}`}>{s.value}</div>
+                  <div key={s.label} className="flex flex-col items-center justify-center py-1.5 px-1 bg-card/25 border border-border-hairline/25 rounded-lg backdrop-blur-xs">
+                    <div className="flex items-center gap-1 mb-1">
+                      {s.icon}
+                      <span className="text-[8px] sm:text-[9px] uppercase font-bold tracking-wider text-muted-soft">{s.label}</span>
+                    </div>
+                    <div className={`text-sm sm:text-base font-black font-mono tracking-tight leading-none ${s.c}`}>{s.value}</div>
                   </div>
                 ))}
               </div>
@@ -288,30 +330,7 @@ export default function AIClient() {
                       letterSpacing: "var(--typing-letter-spacing)",
                     }}
                   >
-                    {words.map((word, wordIndex) => {
-                      const isActive = wordIndex === activeWordIndex;
-                      const isPast = wordIndex < activeWordIndex;
-
-                      return (
-                        <span
-                          key={wordIndex}
-                          ref={(el) => {
-                            wordRefs.current[wordIndex] = el;
-                          }}
-                          className="inline-flex"
-                        >
-                          <Word
-                            word={word}
-                            wordIndex={wordIndex}
-                            isActive={isActive}
-                            isPast={isPast}
-                            typed={typedInput.split(" ")[wordIndex]}
-                            caretType="smooth"
-                            isFocused={focused}
-                          />
-                        </span>
-                      );
-                    })}
+                    {renderedWords}
                   </div>
                 </div>
               </div>
