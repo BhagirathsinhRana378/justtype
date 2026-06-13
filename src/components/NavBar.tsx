@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Keyboard, BarChart3, Sparkles, Trophy, User, Settings, Menu, X } from "lucide-react";
+import { Keyboard, BarChart3, Sparkles, Trophy, User, Settings, Menu, X, Zap } from "lucide-react";
 import ThemeSwitcher from "./ThemeSwitcher";
 
 export default function NavBar() {
@@ -12,6 +12,7 @@ export default function NavBar() {
 
   const navItems = [
     { name: "Test", href: "/test", icon: Keyboard },
+    { name: "Race Mode", href: "/race", icon: Zap },
     { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
     { name: "AI Coach", href: "/ai-coach", icon: Sparkles },
     { name: "Leaderboard", href: "/leaderboards", icon: Trophy },
