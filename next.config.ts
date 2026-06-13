@@ -3,14 +3,14 @@ import type { NextConfig } from "next";
 const cspHeader = `
   default-src 'self';
   script-src 'self' 'unsafe-eval' 'unsafe-inline';
-  style-src 'self' 'unsafe-inline';
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net;
   img-src 'self' blob: data:;
-  font-src 'self';
+  font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net;
   object-src 'none';
   base-uri 'self';
   form-action 'self';
   frame-ancestors 'none';
-  connect-src 'self' ws://localhost:3000 wss://localhost:3000 ws://127.0.0.1:* wss://127.0.0.1:* http://localhost:* http://127.0.0.1:* https://justtype.io;
+  connect-src 'self' ws: wss: http://localhost:* http://127.0.0.1:* https://justtype.io;
   upgrade-insecure-requests;
 `;
 

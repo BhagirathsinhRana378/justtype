@@ -1,101 +1,79 @@
+"use client";
+
 import { create } from "zustand";
 
-interface PlayerData {
+export type RoomStatus = "idle" | "waiting" | "countdown" | "racing" | "finished";
+export type PlayerStatus = "waiting" | "ready" | "racing" | "completed" | "disconnected";
+
+export interface Player {
   id: string;
   name: string;
-  index: number;
   progress: number;
   wpm: number;
   accuracy: number;
-  streak: number;
-  nitroActive: boolean;
-  inSlipstream: boolean;
-  status: "waiting" | "ready" | "racing" | "completed" | "eliminated";
-  shield: number;
-  carType: string;
-  isBoss?: boolean;
-  team?: "red" | "blue";
+  status: PlayerStatus;
   finishTime?: number;
-  rank?: number;
 }
 
-interface ReplayEvent {
-  t: number;
-  playerId: string;
-  type: "key" | "mistake" | "boost" | "finish";
-  wpm: number;
-  acc: number;
-  pos: number;
-}
-
-interface RaceStoreState {
+interface RaceStore {
   playerName: string;
-  playerCar: string;
   roomId: string;
-  roomStatus: "waiting" | "countdown" | "racing" | "finished";
-  players: PlayerData[];
+  roomStatus: RoomStatus;
+  players: Player[];
   textToType: string;
+  words: string[];
   myPlayerId: string;
   isHost: boolean;
-  isSpectator: boolean;
-  gameMode: string;
-  results: any[];
-  replays: ReplayEvent[];
-  viewMode: "race" | "minimal";
-  countdownSeconds: number;
+  raceSettings: {
+    gameMode: string;
+    countdownDuration: number;
+  };
 
-  // Actions
-  setProfile: (name: string, car: string) => void;
+  setPlayerName: (name: string) => void;
   setRoomId: (id: string) => void;
-  setRoomStatus: (status: "waiting" | "countdown" | "racing" | "finished") => void;
-  setPlayers: (players: PlayerData[]) => void;
+  setRoomStatus: (status: RoomStatus) => void;
+  setPlayers: (players: Player[]) => void;
   setTextToType: (text: string) => void;
   setMyPlayerId: (id: string) => void;
-  setIsHost: (isHost: boolean) => void;
-  setIsSpectator: (isSpectator: boolean) => void;
-  setGameMode: (mode: string) => void;
-  setResults: (results: any[]) => void;
-  setReplays: (replays: ReplayEvent[]) => void;
-  setViewMode: (mode: "race" | "minimal") => void;
-  setCountdownSeconds: (sec: number) => void;
+  setIsHost: (v: boolean) => void;
+
+  updatePlayer: (id: string, updates: Partial<Player>) => void;
   resetRoom: () => void;
 }
 
-export const useRaceStore = create<RaceStoreState>((set) => ({
-  playerName: "Racer",
-  playerCar: "sports",
+export const useRaceStore = create<RaceStore>((set, get) => ({
+  playerName: "",
   roomId: "",
-  roomStatus: "waiting",
+  roomStatus: "idle",
   players: [],
   textToType: "",
+  words: [],
   myPlayerId: "",
   isHost: false,
-  isSpectator: false,
-  gameMode: "sprint",
-  results: [],
-  replays: [],
-  viewMode: "race",
-  countdownSeconds: 5,
+  raceSettings: {
+    gameMode: "friend",
+    countdownDuration: 5,
+  },
 
-  setProfile: (name, car) => set({ playerName: name, playerCar: car }),
+  setPlayerName: (name) => set({ playerName: name }),
   setRoomId: (id) => set({ roomId: id }),
   setRoomStatus: (status) => set({ roomStatus: status }),
   setPlayers: (players) => set({ players }),
-  setTextToType: (text) => set({ textToType: text }),
+  setTextToType: (text) => set({ textToType: text, words: text ? text.split(" ") : [] }),
   setMyPlayerId: (id) => set({ myPlayerId: id }),
-  setIsHost: (isHost) => set({ isHost }),
-  setIsSpectator: (isSpectator) => set({ isSpectator }),
-  setGameMode: (mode) => set({ gameMode: mode }),
-  setResults: (results) => set({ results }),
-  setReplays: (replays) => set({ replays }),
-  setViewMode: (mode) => set({ viewMode: mode }),
-  setCountdownSeconds: (sec) => set({ countdownSeconds: sec }),
-  resetRoom: () => set({
-    roomStatus: "waiting",
-    players: [],
-    textToType: "",
-    results: [],
-    replays: [],
-    countdownSeconds: 5
-  })
+  setIsHost: (v) => set({ isHost: v }),
+
+  updatePlayer: (id, updates) =>
+    set((s) => ({
+      players: s.players.map((p) => (p.id === id ? { ...p, ...updates } : p)),
+    })),
+
+  resetRoom: () =>
+    set({
+      roomStatus: "idle",
+      players: [],
+      textToType: "",
+      words: [],
+      isHost: false,
+    }),
 }));

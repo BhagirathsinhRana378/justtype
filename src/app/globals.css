@@ -24,6 +24,7 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-error: var(--error);
+  --color-on-primary: var(--on-primary);
 
   --radius-xs: 4px;
   --radius-sm: 6px;
@@ -51,6 +52,7 @@
   --success: #5db872;
   --warning: #d4a017;
   --error: #c64545;
+  --on-primary: #ffffff;
 
   --font-geist-sans: "Geist Sans", sans-serif;
   --font-geist-mono: "Geist Mono", monospace;
@@ -390,6 +392,134 @@ html.accessibility-large-controls input[type="range"] {
 }
 html.accessibility-large-controls button {
   font-size: 105% !important;
+}
+
+/* ===== RACE VIEWPORT SYSTEM ===== */
+
+/* Race viewport - dedicated game layer, independent from layout containers */
+.race-viewport {
+  position: relative;
+  width: 100%;
+  min-height: 280px;
+  max-height: 50vh;
+  overflow: hidden;
+  contain: strict;
+  z-index: 1;
+}
+
+.race-viewport canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+/* Race car word carousel - smooth scrolling with GPU acceleration */
+.race-carousel {
+  will-change: transform;
+  transform: translate3d(var(--carousel-x, 0px), -50%, 0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+  contain: layout style;
+}
+
+/* Ensure typing panel stays visually attached to race area */
+.race-typing-panel {
+  border-top: none;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  margin-top: -1px;
+}
+
+/* Z-index stacking for race layers */
+.race-canvas-layer {
+  z-index: 1;
+}
+
+.race-emojis-layer {
+  z-index: 5;
+  pointer-events: none;
+}
+
+.race-hud-layer {
+  z-index: 10;
+}
+
+.race-overlay-layer {
+  z-index: 20;
+}
+
+.race-notification-layer {
+  z-index: 50;
+}
+
+/* Prevent text selection during race */
+.race-arena {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Improved touch behavior */
+.race-arena input[type="text"] {
+  caret-color: transparent;
+}
+
+/* Loading skeleton for race */
+.race-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--card) 25%,
+    var(--card-elevated) 50%,
+    var(--card) 75%
+  );
+  background-size: 200% 100%;
+  animation: race-skeleton-loading 1.5s ease-in-out infinite;
+}
+
+@keyframes race-skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Compact stats grid for race telemetry */
+.race-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+  gap: 4px;
+}
+
+/* Responsive race viewport height */
+@media (min-height: 800px) {
+  .race-viewport {
+    min-height: 320px;
+    max-height: 45vh;
+  }
+}
+
+@media (max-height: 700px) {
+  .race-viewport {
+    min-height: 200px;
+    max-height: 35vh;
+  }
+}
+
+/* Race countdown pulse effect */
+@keyframes race-countdown-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.08); opacity: 0.85; }
+}
+
+.race-countdown-number {
+  animation: race-countdown-pulse 1s ease-in-out infinite;
+}
+
+/* Race finish glow */
+@keyframes race-finish-glow {
+  0%, 100% { box-shadow: 0 0 5px var(--primary); }
+  50% { box-shadow: 0 0 20px var(--primary), 0 0 40px var(--primary); }
+}
+
+.race-finish-glow {
+  animation: race-finish-glow 1.5s ease-in-out infinite;
 }
 
 
