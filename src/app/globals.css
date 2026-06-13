@@ -347,8 +347,30 @@ html.visual-reduce-motion::after {
 }
 
 /* 6. Blur Background */
-html.visual-blur-bg .settings-side-preview {
-  backdrop-filter: blur(8px) !important;
+html.visual-blur-bg .settings-side-preview,
+html.visual-blur-bg .bg-card,
+html.visual-blur-bg .bg-card\/30,
+html.visual-blur-bg .bg-background\/95 {
+  backdrop-filter: blur(12px) !important;
+}
+
+/* 6.5. Compact Controls Spacing */
+html.visual-compact-controls .mb-\[72px\] {
+  margin-bottom: 24px !important;
+}
+html.visual-compact-controls .mb-\[48px\] {
+  margin-bottom: 16px !important;
+}
+html.visual-compact-controls .py-6 {
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+}
+html.visual-compact-controls .py-12 {
+  padding-top: 16px !important;
+  padding-bottom: 16px !important;
+}
+html.visual-compact-controls .mt-\[48px\] {
+  margin-top: 16px !important;
 }
 
 /* 7. Accessibility High Contrast */

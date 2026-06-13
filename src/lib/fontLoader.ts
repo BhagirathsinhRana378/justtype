@@ -57,20 +57,27 @@ export function loadLocalFont(name: string, dataUrl: string) {
 export function preloadAllFonts(fonts: FontDef[]) {
   if (typeof document === "undefined") return;
 
-  // 1. Preload Google Fonts in one combined optimized request
+  // 1. Preload Google Fonts in optimized chunks of max 5 families each
   const googleFonts = fonts.filter((f) => f.source === "google");
-  if (googleFonts.length > 0) {
-    const id = "google-fonts-preloaded-bundle";
+  const CHUNK_SIZE = 5;
+  for (let i = 0; i < googleFonts.length; i += CHUNK_SIZE) {
+    const chunk = googleFonts.slice(i, i + CHUNK_SIZE);
+    const id = `google-fonts-preloaded-bundle-${i}`;
     if (!document.getElementById(id)) {
       const link = document.createElement("link");
       link.id = id;
       link.rel = "stylesheet";
-      const familyParams = googleFonts
+      const familyParams = chunk
         .map((f) => `family=${f.name.replace(/ /g, "+")}:wght@300;400;500;600;700`)
         .join("&");
       link.href = `https://fonts.googleapis.com/css2?${familyParams}&display=swap`;
       document.head.appendChild(link);
     }
+    // Mark these fonts as loaded so loadFont doesn't trigger individual link appends
+    chunk.forEach((f) => {
+      const fontId = `font-link-${f.name.replace(/ /g, "-").toLowerCase()}`;
+      loadedFontIds.add(fontId);
+    });
   }
 
   // 2. Preload Fontsource fonts

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { Palette, Sun, Moon, Zap, Sparkles, Rocket, Ghost, Shield, Leaf, Heart, BookOpen } from "lucide-react";
+import { Palette, Sun, Zap, Sparkles, Rocket, Ghost, Shield, Leaf, Heart, BookOpen, Check } from "lucide-react";
 import { applyTheme, THEME_STORAGE_KEY, DEFAULT_THEME_ID, SIGNATURE_THEME_IDS, SIGNATURE_THEME_STORAGE_KEY } from "@/utils/themes";
 
 const QUICK_THEMES = [
@@ -28,11 +28,13 @@ export default function ThemeSwitcher() {
     const signatureTheme = localStorage.getItem(SIGNATURE_THEME_STORAGE_KEY) || DEFAULT_THEME_ID;
     
     // If we are on landing, we reflect the signature theme in the UI
-    if (isLandingPage && !SIGNATURE_THEME_IDS.includes(savedTheme)) {
-      setCurrentTheme(signatureTheme);
-    } else {
-      setCurrentTheme(savedTheme);
-    }
+    const targetTheme = isLandingPage && !SIGNATURE_THEME_IDS.includes(savedTheme)
+      ? signatureTheme
+      : savedTheme;
+
+    Promise.resolve().then(() => {
+      setCurrentTheme(targetTheme);
+    });
   }, [isLandingPage, pathname]);
 
   const handleThemeChange = (id: string) => {

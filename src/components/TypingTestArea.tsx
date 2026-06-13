@@ -13,6 +13,8 @@ interface TypingTestAreaProps {
   registerKeystroke: (char: string) => void;
   restartTest: () => void;
   resumeTest?: () => void;
+  showFocusWarning?: boolean;
+  keyboardNavigation?: boolean;
 }
 
 export default function TypingTestArea({
@@ -23,6 +25,8 @@ export default function TypingTestArea({
   registerKeystroke,
   restartTest,
   resumeTest,
+  showFocusWarning = true,
+  keyboardNavigation = true,
 }: TypingTestAreaProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -82,7 +86,7 @@ export default function TypingTestArea({
         inputRef.current.focus();
       }
 
-      if (e.key === "Tab") {
+      if (keyboardNavigation && e.key === "Tab") {
         e.preventDefault();
         restartTest();
         focusInput();
@@ -93,7 +97,7 @@ export default function TypingTestArea({
     return () => {
       window.removeEventListener("keydown", handleGlobalKeyDown);
     };
-  }, [isFocused, restartTest]);
+  }, [isFocused, restartTest, keyboardNavigation]);
 
   // Split typedInput into words
   const typedWords = useMemo(() => {
@@ -167,7 +171,7 @@ export default function TypingTestArea({
         }}
       >
         {/* Simple physical click-to-focus overlay */}
-        {!isFocused && status !== "completed" && status !== "paused" && (
+        {!isFocused && status !== "completed" && status !== "paused" && showFocusWarning && (
           <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-20 transition-opacity duration-200">
             <span className="text-muted-soft text-sm font-mono tracking-widest select-none bg-background px-5 py-2.5 border border-border-hairline rounded-md shadow-xs">
               [ click to focus ]

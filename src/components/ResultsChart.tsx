@@ -10,7 +10,9 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  ReferenceLine,
 } from "recharts";
+import { useSettings } from "@/hooks/useSettings";
 import { KeyTelemetry } from "@/utils/aiEngine";
 
 interface ResultsChartProps {
@@ -110,6 +112,7 @@ export default function ResultsChart({
   elapsedTime,
   telemetry,
 }: ResultsChartProps) {
+  const { settings } = useSettings();
   const [isMounted, setIsMounted] = useState(false);
   const [resizeKey, setResizeKey] = useState(0);
 
@@ -231,6 +234,18 @@ export default function ResultsChart({
     const maxVal = Math.max(...errorCounts);
     return Math.max(2, maxVal);
   }, [errorsPerSecond]);
+
+  const averageWpm = useMemo(() => {
+    if (chartData.length === 0) return 0;
+    const sum = chartData.reduce((acc, p) => acc + p.wpm, 0);
+    return Math.round(sum / chartData.length);
+  }, [chartData]);
+
+  const averageAccuracy = useMemo(() => {
+    if (history.length === 0) return 100;
+    const sum = history.reduce((acc, h) => acc + h.accuracy, 0);
+    return Math.round(sum / history.length);
+  }, [history]);
 
   if (!isMounted || chartData.length === 0) {
     return (
@@ -359,8 +374,31 @@ export default function ResultsChart({
             dot={<CustomErrorDot />}
             activeDot={false}
           />
+
+          {(settings.showAverage === "speed" || settings.showAverage === "both") && (
+            <ReferenceLine
+              yAxisId="left"
+              y={averageWpm}
+              stroke="var(--primary)"
+              strokeDasharray="3 3"
+              strokeOpacity={0.4}
+              label={{
+                value: `avg: ${averageWpm}`,
+                fill: "var(--primary)",
+                fontSize: 9,
+                position: "insideBottomLeft",
+              }}
+            />
+          )}
         </AreaChart>
       </ResponsiveContainer>
+
+      {(settings.showAverage === "accuracy" || settings.showAverage === "both") && (
+        <div className="absolute top-2 right-4 bg-card/65 border border-border-hairline/60 rounded-md px-2 py-1 text-[9px] text-success font-semibold flex items-center gap-1 select-none pointer-events-none">
+          <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+          <span>avg acc: {averageAccuracy}%</span>
+        </div>
+      )}
     </div>
   );
 }

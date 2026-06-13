@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useTypingTest, KeyboardLayoutType, CaretType } from "@/hooks/useTypingTest";
+import { useSettings } from "@/hooks/useSettings";
 import TypingTestArea from "@/components/TypingTestArea";
 import VirtualKeyboard from "@/components/VirtualKeyboard";
 import { 
@@ -12,6 +13,7 @@ import {
   Keyboard,
   BookOpen,
   AlertCircle,
+  AlertTriangle,
   BarChart2,
   CheckCircle2,
   TrendingUp,
@@ -154,6 +156,7 @@ const PRESETS = [
 ];
 
 export default function TypePage() {
+  const { settings } = useSettings();
   const {
     mode,
     limit,
@@ -178,6 +181,22 @@ export default function TypePage() {
   } = useTypingTest();
 
   const [heatmapData, setHeatmapData] = useState<Record<string, { errorRate: number; avgLatency: number; score: number }>>({});
+  const [capsLockActive, setCapsLockActive] = useState(false);
+
+  // Monitor Caps Lock modifier state globally
+  useEffect(() => {
+    const handleModifierCheck = (e: KeyboardEvent) => {
+      if (typeof e.getModifierState === "function") {
+        setCapsLockActive(e.getModifierState("CapsLock"));
+      }
+    };
+    window.addEventListener("keydown", handleModifierCheck);
+    window.addEventListener("keyup", handleModifierCheck);
+    return () => {
+      window.removeEventListener("keydown", handleModifierCheck);
+      window.removeEventListener("keyup", handleModifierCheck);
+    };
+  }, []);
 
   // Custom text mode state variables
   const [showCustomModal, setShowCustomModal] = useState(false);
@@ -627,7 +646,6 @@ export default function TypePage() {
     return targetText[typedInput.length] || "";
   }, [words, typedInput.length, status]);
 
-  const isFocusMode = status === "typing";
 
   // Group errors by second from telemetry data
   const errorsPerSecond = useMemo(() => {
@@ -691,7 +709,9 @@ export default function TypePage() {
           {/* 1. COMPACT CONTROLS TOOLBAR */}
           <div 
             className={`w-full max-w-[850px] flex items-center justify-between bg-card/25 border border-border-hairline rounded-[12px] px-4 h-[52px] font-mono text-sm text-muted gap-2 overflow-x-auto whitespace-nowrap scrollbar-none transition-all duration-300 shrink-0 ${
-              isFocusMode ? "opacity-15 pointer-events-none" : "opacity-100"
+              status === "typing"
+                ? (settings.focusMode ? "opacity-0 pointer-events-none" : "opacity-15 pointer-events-none")
+                : "opacity-100"
             }`}
           >
             {/* Left: Mode Selector */}
@@ -792,7 +812,7 @@ export default function TypePage() {
                 </div>
               )}
 
-              {mode === "custom" && (
+              {mode === "custom" && !settings.minimalUi && (
                 <button
                   onClick={() => setShowCustomModal(true)}
                   className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[12.5px] font-semibold text-primary hover:text-primary-hover bg-primary/10 hover:bg-primary/20 border border-primary/20 transition-all duration-200 cursor-pointer"
@@ -804,36 +824,38 @@ export default function TypePage() {
             </div>
 
             {/* Right: Layout & Caret Dropdowns (No Sound Section) */}
-            <div className="flex items-center space-x-2 pl-1 shrink-0">
-              {/* Layout */}
-              <div className="flex items-center space-x-1 font-sans">
-                <Keyboard className="w-3 h-3 text-muted-soft" />
-                <select
-                  value={layout}
-                  onChange={(e) => setLayout(e.target.value as KeyboardLayoutType)}
-                  className="bg-transparent text-muted hover:text-foreground text-[12px] outline-none border-none cursor-pointer pr-1"
-                >
-                  <option value="qwerty" className="bg-card">QWERTY</option>
-                  <option value="dvorak" className="bg-card">Dvorak</option>
-                  <option value="colemak" className="bg-card">Colemak</option>
-                </select>
-              </div>
+            {!settings.minimalUi && (
+              <div className="flex items-center space-x-2 pl-1 shrink-0">
+                {/* Layout */}
+                <div className="flex items-center space-x-1 font-sans">
+                  <Keyboard className="w-3 h-3 text-muted-soft" />
+                  <select
+                    value={layout}
+                    onChange={(e) => setLayout(e.target.value as KeyboardLayoutType)}
+                    className="bg-transparent text-muted hover:text-foreground text-[12px] outline-none border-none cursor-pointer pr-1"
+                  >
+                    <option value="qwerty" className="bg-card">QWERTY</option>
+                    <option value="dvorak" className="bg-card">Dvorak</option>
+                    <option value="colemak" className="bg-card">Colemak</option>
+                  </select>
+                </div>
 
-              {/* Caret */}
-              <div className="flex items-center space-x-1 font-sans">
-                <span className="text-[12px] text-muted-soft">|</span>
-                <select
-                  value={caretType}
-                  onChange={(e) => setCaretType(e.target.value as CaretType)}
-                  className="bg-transparent text-muted hover:text-foreground text-[12px] outline-none border-none cursor-pointer pr-1 ml-0.5"
-                >
-                  <option value="smooth" className="bg-card">Line</option>
-                  <option value="block" className="bg-card">Block</option>
-                  <option value="underline" className="bg-card">Under</option>
-                  <option value="hidden" className="bg-card">Hide</option>
-                </select>
+                {/* Caret */}
+                <div className="flex items-center space-x-1 font-sans">
+                  <span className="text-[12px] text-muted-soft">|</span>
+                  <select
+                    value={caretType}
+                    onChange={(e) => setCaretType(e.target.value as CaretType)}
+                    className="bg-transparent text-muted hover:text-foreground text-[12px] outline-none border-none cursor-pointer pr-1 ml-0.5"
+                  >
+                    <option value="smooth" className="bg-card">Line</option>
+                    <option value="block" className="bg-card">Block</option>
+                    <option value="underline" className="bg-card">Under</option>
+                    <option value="hidden" className="bg-card">Hide</option>
+                  </select>
+                </div>
               </div>
-            </div>
+            )}
 
           </div>
 
@@ -846,8 +868,10 @@ export default function TypePage() {
           >
             {/* Live stats HUD - Minimal design */}
             <div 
-              className={`flex items-center gap-6 font-mono text-[11px] text-muted-soft h-6 select-none transition-opacity duration-300 mb-[16px] shrink-0 ${
-                isFocusMode ? "opacity-45" : "opacity-90"
+              className={`live-stats-bar flex items-center gap-6 font-mono text-[11px] text-muted-soft h-6 select-none transition-opacity duration-300 mb-[16px] shrink-0 ${
+                status === "typing"
+                  ? (settings.focusMode ? "opacity-0 pointer-events-none" : "opacity-45")
+                  : "opacity-90"
               }`}
             >
               <div className="flex items-center gap-1.5">
@@ -858,17 +882,29 @@ export default function TypePage() {
                     : (mode === "time" ? `${limit}s` : `--`)}
                 </span>
               </div>
-              <div className="w-1 h-1 rounded-full bg-border-hairline" />
-              <div className="flex items-center gap-1.5">
-                <span>wpm:</span>
-                <span className="text-primary font-semibold">{status === "typing" ? wpm : `--`}</span>
-              </div>
-              <div className="w-1 h-1 rounded-full bg-border-hairline" />
-              <div className="flex items-center gap-1.5">
-                <span>acc:</span>
-                <span className="text-success font-semibold">{status === "typing" ? `${accuracy}%` : `100%`}</span>
-              </div>
+              {(!settings.hideStatistics || status !== "typing") && (
+                <>
+                  <div className="w-1 h-1 rounded-full bg-border-hairline" />
+                  <div className="flex items-center gap-1.5">
+                    <span>wpm:</span>
+                    <span className="text-primary font-semibold">{status === "typing" ? wpm : `--`}</span>
+                  </div>
+                  <div className="w-1 h-1 rounded-full bg-border-hairline" />
+                  <div className="flex items-center gap-1.5">
+                    <span>acc:</span>
+                    <span className="text-success font-semibold">{status === "typing" ? `${accuracy}%` : `100%`}</span>
+                  </div>
+                </>
+              )}
             </div>
+
+            {/* Caps Lock Warning Banner */}
+            {settings.showCapsWarning && capsLockActive && (
+              <div className="mb-4 flex items-center gap-2 px-4 py-2 bg-error/10 text-error border border-error/20 rounded-lg font-mono text-[11px] animate-pulse select-none z-50">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                <span className="font-semibold uppercase tracking-wider">Caps Lock is ON</span>
+              </div>
+            )}
 
             {/* Word board wrapper */}
             <div className="w-full">
@@ -881,53 +917,66 @@ export default function TypePage() {
                 registerKeystroke={registerKeystroke}
                 restartTest={restartTest}
                 resumeTest={resumeTest}
+                showFocusWarning={settings.showFocusWarning}
+                keyboardNavigation={settings.keyboardNavigation}
               />
             </div>
 
             {/* Restart Info row */}
-            <div 
-              className={`mt-4 flex items-center gap-3 text-[11px] text-muted-soft select-none font-mono transition-opacity duration-300 ${
-                isFocusMode ? "opacity-15 hover:opacity-50" : "opacity-80"
-              }`}
-            >
-              <button
-                onClick={() => {
-                  restartTest();
-                }}
-                className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer"
+            {settings.showKeyTips && (
+              <div 
+                className={`mt-4 flex items-center gap-3 text-[11px] text-muted-soft select-none font-mono transition-opacity duration-300 ${
+                  status === "typing"
+                    ? (settings.focusMode ? "opacity-0 pointer-events-none" : "opacity-15 hover:opacity-50")
+                    : "opacity-80"
+                }`}
               >
-                {/* Circular Restart arrow SVG */}
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89M9 9.5a2.5 2.5 0 115 0" />
-                </svg>
-                <span>Restart</span>
-              </button>
-              <span>•</span>
-              <div className="flex items-center gap-1">
-                <kbd className="px-1 py-0.2 bg-card border border-border-hairline rounded text-[9px] text-muted select-none">Tab</kbd>
-                <span>quick reset</span>
+                <button
+                  onClick={() => {
+                    restartTest();
+                  }}
+                  className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer"
+                >
+                  {/* Circular Restart arrow SVG */}
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89M9 9.5a2.5 2.5 0 115 0" />
+                  </svg>
+                  <span>Restart</span>
+                </button>
+                {!settings.minimalUi && (
+                  <>
+                    <span>•</span>
+                    <div className="flex items-center gap-1">
+                      <kbd className="px-1 py-0.2 bg-card border border-border-hairline rounded text-[9px] text-muted select-none">Tab</kbd>
+                      <span>quick reset</span>
+                    </div>
+                  </>
+                )}
               </div>
-            </div>
+            )}
 
           </div>
 
           {/* 3. FIXED BOTTOM SECTION: Virtual Keyboard */}
-          <div 
-            className={`w-full max-w-[740px] transition-all duration-300 shrink-0 select-none ${
-              isFocusMode 
-                ? "translate-y-4 pointer-events-none" 
-                : "translate-y-0"
-            }`}
-          >
-            <VirtualKeyboard 
-              layout={layout} 
-              heatmapMode="none"
-              heatmapData={heatmapData}
-              interactive={false}
-              nextChar={nextChar}
-              isFocusMode={isFocusMode}
-            />
-          </div>
+          {settings.showLiveKeyboard !== "off" && (
+            <div 
+              className={`w-full max-w-[740px] transition-all duration-300 shrink-0 select-none ${
+                status === "typing"
+                  ? (settings.focusMode ? "opacity-0 pointer-events-none translate-y-4" : "translate-y-4 pointer-events-none")
+                  : "translate-y-0"
+              }`}
+            >
+              <VirtualKeyboard 
+                layout={layout} 
+                heatmapMode="none"
+                heatmapData={heatmapData}
+                pressedKeys={settings.showLiveKeyboard === "static" ? [] : undefined}
+                interactive={false}
+                nextChar={nextChar}
+                isFocusMode={status === "typing"}
+              />
+            </div>
+          )}
         </>
       ) : (
         /* Finished Test Scorecard exactly matching the reference Monkeytype image */

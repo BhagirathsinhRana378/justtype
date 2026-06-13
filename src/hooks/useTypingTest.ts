@@ -113,20 +113,44 @@ export function useTypingTest() {
   const totalActiveTimeMsRef = useRef<number>(0);
   const lastResumeTimeRef = useRef<number>(0);
 
-  // Load configuration from localStorage on mount
+  // Helper to retrieve memory mode safely
+  const getMemoryMode = useCallback((): "balanced" | "performance" | "maximum" => {
+    if (typeof window === "undefined") return "balanced";
+    try {
+      const raw = localStorage.getItem("justtype_system_settings");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.memoryMode) return parsed.memoryMode;
+      }
+    } catch {}
+    return "balanced";
+  }, []);
+
+  // Load configuration from localStorage on mount and sync on storage events
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const savedMode = localStorage.getItem("justtype_config_mode") as TestMode;
-      const savedLimit = localStorage.getItem("justtype_config_limit");
-      const savedCaret = localStorage.getItem("justtype_config_caret") as CaretType;
-      const savedLayout = localStorage.getItem("justtype_config_layout") as KeyboardLayoutType;
+      const loadConfig = () => {
+        const savedMode = localStorage.getItem("justtype_config_mode") as TestMode;
+        const savedLimit = localStorage.getItem("justtype_config_limit");
+        const savedCaret = localStorage.getItem("justtype_config_caret") as CaretType;
+        const savedLayout = localStorage.getItem("justtype_config_layout") as KeyboardLayoutType;
 
-      Promise.resolve().then(() => {
         if (savedMode) setMode(savedMode);
         if (savedLimit) setLimit(parseInt(savedLimit));
         if (savedCaret) setCaretType(savedCaret);
         if (savedLayout) setLayout(savedLayout);
-      });
+      };
+
+      loadConfig();
+
+      const handleStorage = () => {
+        loadConfig();
+      };
+      
+      window.addEventListener("storage", handleStorage);
+      return () => {
+        window.removeEventListener("storage", handleStorage);
+      };
     }
   }, []);
 
@@ -405,8 +429,10 @@ export function useTypingTest() {
       layout: layout
     };
     
-    saveSession(session);
-  }, [words, mode, layout]);
+    if (getMemoryMode() !== "maximum") {
+      saveSession(session);
+    }
+  }, [words, mode, layout, getMemoryMode]);
 
   const startTimerInterval = useCallback((initialStartTime?: number) => {
     if (timerIntervalRef.current) {
@@ -567,8 +593,16 @@ export function useTypingTest() {
       const targetChar = targetText[prev.length] || "";
       const isCorrect = char === targetChar;
 
-      const latency = lastKeyTimeRef.current > 0 ? (now - lastKeyTimeRef.current) : 0;
-      telemetryRef.current.push({ key: targetChar, typedKey: char, timestamp: now, latency, isCorrect });
+      const memoryMode = getMemoryMode();
+      if (memoryMode !== "maximum") {
+        const latency = lastKeyTimeRef.current > 0 ? (now - lastKeyTimeRef.current) : 0;
+        telemetryRef.current.push({ key: targetChar, typedKey: char, timestamp: now, latency, isCorrect });
+        if (memoryMode === "performance" && telemetryRef.current.length > 50) {
+          telemetryRef.current = telemetryRef.current.slice(-50);
+        }
+      } else {
+        telemetryRef.current = [];
+      }
       lastKeyTimeRef.current = now;
 
       if (!isCorrect) setRawMistakes((m) => m + 1);
@@ -595,7 +629,7 @@ export function useTypingTest() {
 
       return nextInput;
     });
-  }, [status, words, completeTest, startTimerInterval, checkIfTimeMode]);
+  }, [status, words, completeTest, startTimerInterval, checkIfTimeMode, getMemoryMode]);
 
   return {
     mode, limit, caretType, layout, words, typedInput, status, timeLeft, elapsedTime, rawMistakes, wpm, accuracy, history,

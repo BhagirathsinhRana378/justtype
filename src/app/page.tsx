@@ -76,30 +76,79 @@ export default function Home() {
 
   if (!isLoaded) {
     return (
-      <div className="fixed inset-0 z-[100] bg-background flex flex-col items-center justify-center p-6 transition-colors duration-500">
-        <div className="w-full max-w-[240px] flex flex-col items-center gap-6">
-          {/* Centered Speed Indicator */}
-          <div className="flex flex-col items-center gap-1">
-            <div className="text-5xl font-serif font-bold text-foreground tabular-nums tracking-tighter">
+      <div className="fixed inset-0 z-[100] bg-background flex flex-col items-center justify-center p-6 overflow-hidden">
+        {/* Background Grid Pattern */}
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
+          style={{ backgroundImage: "radial-gradient(var(--foreground) 1px, transparent 0)", backgroundSize: "40px 40px" }} 
+        />
+        
+        {/* Abstract "Man Typing" Visual - Pulsing Fingers */}
+        <div className="absolute top-[30%] w-full max-w-lg h-40 flex justify-center items-center opacity-20 pointer-events-none">
+          <div className="relative w-full h-full">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+              <div 
+                key={i}
+                className="absolute w-4 h-4 rounded-full bg-primary blur-sm"
+                style={{
+                  left: `${15 + i * 10}%`,
+                  top: `${(40 + Math.sin(i + loadingSpeed * 0.2) * 20).toFixed(2)}%`,
+                  opacity: mounted ? (Math.sin(i * 1.5 + loadingSpeed * 0.1) > 0 ? 1 : 0.3) : 1,
+                  transitionProperty: "all",
+                  transitionDuration: "0.1s",
+                  transitionTimingFunction: "ease-out"
+                }}
+              />
+            ))}
+            <div className="absolute bottom-0 left-[10%] right-[10%] h-[1px] bg-border-hairline" />
+          </div>
+        </div>
+
+        {/* Large Mechanical Counter */}
+        <div className="relative flex flex-col items-center gap-2 mb-12">
+          <div className="flex items-end">
+            <div className="text-[10rem] md:text-[14rem] font-serif font-bold text-foreground leading-none tracking-tighter tabular-nums flex items-baseline">
               {loadingSpeed}
+              <div className="w-4 md:w-8 h-[0.7em] bg-primary ml-4 animate-blink self-center" />
             </div>
-            <div className="text-[10px] font-mono text-muted uppercase tracking-[0.2em]">
-              initializing...
+            <div className="text-3xl md:text-4xl font-serif text-muted-soft mb-8 font-light italic">wpm</div>
+          </div>
+          
+          {/* Keystroke Stream Log */}
+          <div className="h-20 overflow-hidden font-mono text-[10px] text-primary/40 flex flex-col items-center gap-1">
+            {keystrokeLog.map((log, i) => (
+              <div key={i} className="animate-fadeIn">{log}</div>
+            ))}
+          </div>
+        </div>
+
+        {/* Technical Status */}
+        <div className="flex flex-col items-center gap-8 max-w-sm w-full">
+          <div className="flex flex-col items-center gap-1">
+            <div className="h-6 overflow-hidden flex items-center justify-center">
+              <div key={loadingStage} className="text-xs font-mono font-bold text-primary tracking-[0.3em] uppercase animate-fadeIn">
+                {stages[loadingStage]}
+              </div>
             </div>
           </div>
 
-          {/* Thin Progress Line */}
-          <div className="w-full h-[1px] bg-border-hairline relative">
+          <div className="w-full h-1 bg-card border border-border-hairline rounded-full overflow-hidden p-[1px] relative">
             <div 
-              className="absolute top-0 left-0 h-full bg-primary transition-all duration-150 ease-out" 
+              className="h-full bg-primary transition-all duration-150 ease-out shadow-[0_0_20px_rgba(var(--primary-rgb),0.5)]" 
               style={{ width: `${loadingSpeed}%` }}
+            />
+            <div className="absolute top-0 bottom-0 w-20 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-[scan_2s_linear_infinite]" 
+              style={{ left: `${loadingSpeed}%`, transform: "translateX(-50%)" }}
             />
           </div>
 
-          {/* Minimal Stage Text */}
-          <div className="h-4 overflow-hidden flex items-center justify-center">
-            <div key={loadingStage} className="text-[9px] font-mono text-muted-soft uppercase tracking-widest animate-fadeIn">
-              {stages[loadingStage]}
+          <div className="flex items-center gap-12 mt-4 opacity-50">
+            <div className="flex items-center gap-2">
+              <Fingerprint className="w-4 h-4 text-primary" />
+              <span className="text-[9px] font-mono uppercase tracking-[0.2em]">Biometric_Sync</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Cpu className="w-4 h-4 text-primary" />
+              <span className="text-[9px] font-mono uppercase tracking-[0.2em]">Kernel_v4.0.2</span>
             </div>
           </div>
         </div>

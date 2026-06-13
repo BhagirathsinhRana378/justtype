@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Search } from "lucide-react";
 
 import TypographySettings from "@/components/settings/TypographySettings";
@@ -42,9 +42,17 @@ function SettingsSection({ id, title, subtitle, children }: SettingsSectionProps
 }
 
 export default function SettingsPage() {
+  const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
+  useEffect(() => {
+    Promise.resolve().then(() => {
+      setMounted(true);
+    });
+  }, []);
+
   const query = searchQuery.toLowerCase().trim();
+
 
   const handleThemeToggle = () => {
     if (typeof window !== "undefined") {
@@ -177,6 +185,14 @@ export default function SettingsPage() {
       ].some((text) => text.includes(query))
     );
   }, [query]);
+
+  if (!mounted) {
+    return (
+      <div className="flex-1 w-full bg-background pb-24 overflow-hidden flex items-center justify-center min-h-[calc(100vh-4rem)] font-mono text-xs text-muted-soft">
+        Initializing settings dashboard...
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 w-full bg-background pb-24 overflow-hidden">

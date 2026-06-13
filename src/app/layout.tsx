@@ -3,7 +3,6 @@ import { Geist, Geist_Mono, Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
 import NavBar from "@/components/NavBar";
 import Footer from "@/components/Footer";
-import Script from "next/script";
 import ThemeHandler from "@/components/ThemeHandler";
 
 const geistSans = Geist({
@@ -104,14 +103,9 @@ export default function Root({
       className={`${geistSans.variable} ${geistMono.variable} ${cormorantGaramond.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <head />
-      <body 
-        className="min-h-full flex flex-col bg-background text-foreground font-sans selection:bg-primary selection:text-white transition-colors duration-300"
-        suppressHydrationWarning
-      >
-        <Script
+      <head>
+        <script
           id="theme-strategy"
-          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
@@ -126,6 +120,11 @@ export default function Root({
             `,
           }}
         />
+      </head>
+      <body 
+        className="min-h-full flex flex-col bg-background text-foreground font-sans selection:bg-primary selection:text-white transition-colors duration-300"
+        suppressHydrationWarning
+      >
         <ThemeHandler />
         <NavBar />
         <main className="flex-1 flex flex-col w-full bg-background text-foreground transition-colors duration-300">

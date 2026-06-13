@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { applyTheme } from "@/utils/themes";
+import { resetTypography } from "./useTypography";
 
 export interface SystemSettings {
   // Visual Preferences
@@ -166,18 +167,9 @@ export function useSettings() {
       localStorage.removeItem("justtype_config_layout");
       localStorage.removeItem("justtype_config_caret");
       localStorage.removeItem("justtype_config_font");
-      localStorage.removeItem("justtype_font_size");
-      localStorage.removeItem("justtype_font_family");
       
+      resetTypography();
       applyTheme("cream");
-      // Reload is avoided per specifications, but we trigger document style resets manually
-      const docEl = document.documentElement;
-      docEl.style.setProperty("--typing-font-size", "1.55rem");
-      docEl.style.setProperty("--typing-font-family", "Geist Mono, monospace");
-      docEl.style.setProperty("--typing-word-gap", "0.698rem");
-      docEl.style.setProperty("--typing-line-height", "2.403rem");
-      docEl.style.setProperty("--typing-cursor-height", "1.597rem");
-      docEl.style.setProperty("--typing-letter-spacing", "-0.015em");
     }
     emit();
   }, []);

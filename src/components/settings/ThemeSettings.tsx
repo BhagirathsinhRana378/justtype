@@ -193,13 +193,6 @@ export default function ThemeSettings({ searchQuery: parentSearchQuery }: ThemeS
     return filtered;
   }, [activeCategory, activeQuery, favorites, activeThemeId, recentlyUsed, customThemesList]);
 
-  const handleMouseEnter = useCallback((id: string) => {
-    applyTheme(id);
-  }, []);
-
-  const handleMouseLeave = useCallback(() => {
-    applyTheme(activeThemeId);
-  }, [activeThemeId]);
 
   const handleSelectTheme = useCallback((id: string) => {
     setActiveThemeId(id);
@@ -571,7 +564,6 @@ export default function ThemeSettings({ searchQuery: parentSearchQuery }: ThemeS
       {filteredThemes.length > 0 ? (
         <div 
           className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2 w-full select-none mt-1"
-          onMouseLeave={handleMouseLeave}
         >
           {filteredThemes.map((theme) => {
             const isSelected = activeThemeId === theme.id;
@@ -590,19 +582,34 @@ export default function ThemeSettings({ searchQuery: parentSearchQuery }: ThemeS
             return (
               <div
                 key={theme.id}
-                onMouseEnter={() => handleMouseEnter(theme.id)}
                 style={{
                   contentVisibility: "auto",
                   containIntrinsicSize: "auto 36px"
                 } as React.CSSProperties}
                 className="relative group w-full"
               >
+                {/* Star favorite toggle (absolute positioned outside selection button) */}
+                <button
+                  type="button"
+                  onClick={(e) => toggleFavorite(theme.id, e)}
+                  className={`absolute left-2.5 top-1/2 -translate-y-1/2 z-20 transition-opacity cursor-pointer shrink-0 ${
+                    isFav 
+                      ? "opacity-100" 
+                      : "opacity-0 group-hover:opacity-60 hover:opacity-100"
+                  }`}
+                  style={{ color: colors.primary }}
+                >
+                  <Star 
+                    className={`w-3 h-3 ${isFav ? "fill-current" : ""}`} 
+                  />
+                </button>
+
                 {/* Tile Button */}
                 <button
                   type="button"
                   onClick={() => handleSelectTheme(theme.id)}
                   style={tileStyle}
-                  className={`w-full h-9 px-2.5 rounded-[8px] flex items-center justify-between select-none relative cursor-pointer transition-all duration-150 ${
+                  className={`w-full h-9 pl-8 pr-8 rounded-[8px] flex items-center justify-between select-none relative cursor-pointer transition-all duration-150 ${
                     isSelected 
                       ? "border-2 shadow-xs" 
                       : "border hover:brightness-[1.06] hover:shadow-2xs"
@@ -610,22 +617,6 @@ export default function ThemeSettings({ searchQuery: parentSearchQuery }: ThemeS
                 >
                   {/* Left: Icons & Theme Name */}
                   <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                    {/* Star favorite toggle */}
-                    <button
-                      type="button"
-                      onClick={(e) => toggleFavorite(theme.id, e)}
-                      className={`transition-opacity cursor-pointer shrink-0 ${
-                        isFav 
-                          ? "opacity-100" 
-                          : "opacity-0 group-hover:opacity-60 hover:opacity-100"
-                      }`}
-                      style={{ color: colors.primary }}
-                    >
-                      <Star 
-                        className={`w-3 h-3 ${isFav ? "fill-current" : ""}`} 
-                      />
-                    </button>
-
                     {/* Selected checkmark or recently used clock icon */}
                     {isRecent && !isSelected && (
                       <Clock className="w-2.5 h-2.5 shrink-0 opacity-40" style={{ color: colors.muted }} />
@@ -648,51 +639,51 @@ export default function ThemeSettings({ searchQuery: parentSearchQuery }: ThemeS
                     )}
                   </div>
 
-                  {/* Right Side: Action toolbar overlay on hover for custom themes, otherwise color dots */}
-                  {isCustom && !isRenaming ? (
-                    <div className="hidden group-hover:flex items-center gap-1 shrink-0 ml-1.5 bg-inherit pr-0.5 z-10">
-                      <button
-                        type="button"
-                        onClick={(e) => handleStartRename(theme, e)}
-                        className="p-0.5 hover:text-primary transition-colors cursor-pointer"
-                        title="Rename Theme"
-                      >
-                        <Edit3 className="w-2.5 h-2.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => handleDuplicateTheme(theme.id, e)}
-                        className="p-0.5 hover:text-primary transition-colors cursor-pointer"
-                        title="Duplicate Theme"
-                      >
-                        <Copy className="w-2.5 h-2.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => handleExportCustomTheme(theme, e)}
-                        className="p-0.5 hover:text-primary transition-colors cursor-pointer"
-                        title="Copy Theme JSON to clipboard"
-                      >
-                        <Download className="w-2.5 h-2.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => handleDeleteCustomTheme(theme.id, e)}
-                        className="p-0.5 hover:text-error transition-colors cursor-pointer"
-                        title="Delete Theme"
-                      >
-                        <Trash2 className="w-2.5 h-2.5" />
-                      </button>
-                    </div>
-                  ) : null}
-
                   {/* Standard palette dots (hidden on custom hover so actions display) */}
-                  <div className={`flex items-center gap-[3px] shrink-0 ml-1.5 select-none ${isCustom ? "group-hover:hidden" : ""}`} aria-hidden="true">
+                  <div className={`flex items-center gap-[3px] shrink-0 select-none ${isCustom ? "group-hover:hidden" : ""}`} aria-hidden="true">
                     <span className="w-1.5 h-1.5 rounded-full border border-black/5" style={{ backgroundColor: colors.background }} />
                     <span className="w-1.5 h-1.5 rounded-full border border-black/5" style={{ backgroundColor: colors.text }} />
                     <span className="w-1.5 h-1.5 rounded-full border border-black/5" style={{ backgroundColor: colors.primary }} />
                   </div>
                 </button>
+
+                {/* Right Side: Action toolbar overlay on hover for custom themes, otherwise color dots */}
+                {isCustom && !isRenaming ? (
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-1 shrink-0 bg-inherit pr-0.5 z-20">
+                    <button
+                      type="button"
+                      onClick={(e) => handleStartRename(theme, e)}
+                      className="p-0.5 hover:text-primary transition-colors cursor-pointer"
+                      title="Rename Theme"
+                    >
+                      <Edit3 className="w-2.5 h-2.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => handleDuplicateTheme(theme.id, e)}
+                      className="p-0.5 hover:text-primary transition-colors cursor-pointer"
+                      title="Duplicate Theme"
+                    >
+                      <Copy className="w-2.5 h-2.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => handleExportCustomTheme(theme, e)}
+                      className="p-0.5 hover:text-primary transition-colors cursor-pointer"
+                      title="Copy Theme JSON to clipboard"
+                    >
+                      <Download className="w-2.5 h-2.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => handleDeleteCustomTheme(theme.id, e)}
+                      className="p-0.5 hover:text-error transition-colors cursor-pointer"
+                      title="Delete Theme"
+                    >
+                      <Trash2 className="w-2.5 h-2.5" />
+                    </button>
+                  </div>
+                ) : null}
 
                 {/* Export success toast overlay */}
                 {exportSuccessId === theme.id && (

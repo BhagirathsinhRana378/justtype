@@ -78,6 +78,17 @@ if (typeof window !== "undefined") {
   });
 }
 
+export function resetTypography() {
+  globalFontSize = 1.0;
+  globalFontFamily = "Roboto Mono";
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("justtype_font_size");
+    localStorage.removeItem("justtype_font_family");
+    applyTypographyStyles(globalFontSize, globalFontFamily);
+  }
+  emit();
+}
+
 export function useTypography() {
   const [fontSize, setFontSizeState] = useState(globalFontSize);
   const [fontFamily, setFontFamilyState] = useState(globalFontFamily);

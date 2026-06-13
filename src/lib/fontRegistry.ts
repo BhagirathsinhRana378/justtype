@@ -7,11 +7,11 @@ export interface FontDef {
 }
 
 export const MONO_FONTS: FontDef[] = [
-  { name: "Adwaita Mono", family: "'Adwaita Mono', monospace", category: "mono", source: "google" },
+  { name: "Adwaita Mono", family: "'Adwaita Mono', monospace", category: "mono", source: "system" },
   { name: "Roboto Mono", family: "'Roboto Mono', monospace", category: "mono", source: "google" },
   { name: "IBM Plex Mono", family: "'IBM Plex Mono', monospace", category: "mono", source: "google" },
   { name: "JetBrains Mono", family: "'JetBrains Mono', monospace", category: "mono", source: "google" },
-  { name: "Cascadia Mono", family: "'Cascadia Mono', monospace", category: "mono", source: "fontsource", fontsourcePkg: "cascadia-code" },
+  { name: "Cascadia Mono", family: "'Cascadia Mono', monospace", category: "mono", source: "fontsource", fontsourcePkg: "cascadia-mono" },
   { name: "Fira Code", family: "'Fira Code', monospace", category: "mono", source: "google" },
   { name: "Source Code Pro", family: "'Source Code Pro', monospace", category: "mono", source: "google" },
   { name: "Hack", family: "'Hack', monospace", category: "mono", source: "fontsource", fontsourcePkg: "hack" },
@@ -51,10 +51,10 @@ export const READABLE_FONTS: FontDef[] = [
 
 export const DISPLAY_FONTS: FontDef[] = [
   { name: "Georgia", family: "Georgia, serif", category: "display", source: "system" },
-  { name: "Proto", family: "'Proto', sans-serif", category: "display", source: "fontsource", fontsourcePkg: "proto" },
+  { name: "Proto", family: "'Proto', sans-serif", category: "display", source: "system" },
   { name: "Mononoki", family: "'mononoki', monospace", category: "display", source: "fontsource", fontsourcePkg: "mononoki" },
   { name: "Sarabun", family: "'Sarabun', sans-serif", category: "display", source: "google" },
-  { name: "Boon", family: "'Boon', sans-serif", category: "display", source: "fontsource", fontsourcePkg: "boon" },
+  { name: "Boon", family: "'Boon', sans-serif", category: "display", source: "system" },
   { name: "Coming Soon", family: "'Coming Soon', cursive", category: "display", source: "google" },
   { name: "Lalezar", family: "'Lalezar', display", category: "display", source: "google" },
   { name: "Noto Naskh Arabic", family: "'Noto Naskh Arabic', serif", category: "display", source: "google" },
