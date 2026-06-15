@@ -960,7 +960,7 @@ export default function TypePage() {
           {/* 3. FIXED BOTTOM SECTION: Virtual Keyboard */}
           {settings.showLiveKeyboard !== "off" && (
             <div 
-              className={`w-full max-w-[740px] transition-all duration-300 shrink-0 select-none ${
+              className={`w-full max-w-[740px] hidden sm:block transition-all duration-300 shrink-0 select-none ${
                 status === "typing"
                   ? (settings.focusMode ? "opacity-0 pointer-events-none translate-y-4" : "translate-y-4 pointer-events-none")
                   : "translate-y-0"

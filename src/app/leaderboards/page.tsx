@@ -247,6 +247,7 @@ export default function LeaderboardsPage() {
     setAuthError(null);
   };
 
+  /* eslint-disable @typescript-eslint/no-explicit-any */
   const cardVariants: any = {
     hidden: { opacity: 0, scale: 0.98, y: 12 },
     visible: {
@@ -308,6 +309,7 @@ export default function LeaderboardsPage() {
       transition: { type: "spring", stiffness: 300, damping: 25 }
     }
   };
+  /* eslint-enable @typescript-eslint/no-explicit-any */
 
   const ShimmerRow = () => (
     <tr className="animate-pulse border-b border-border-hairline">

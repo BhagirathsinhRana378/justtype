@@ -197,10 +197,10 @@ export default function SettingsPage() {
   return (
     <div className="flex-1 w-full bg-background pb-24 overflow-hidden">
       {/* ──────────────────────── STICKY UTILITY BAR ──────────────────────── */}
-      <div className="sticky top-0 z-50 bg-background/95 border-b border-border-hairline h-16 flex items-center justify-between mb-[48px] overflow-hidden">
-        <div className="max-w-[1400px] w-[85%] mx-auto flex items-center justify-between h-full">
+      <div className="sticky top-0 z-50 bg-background/95 border-b border-border-hairline h-auto min-h-16 flex items-center justify-between mb-[48px] overflow-hidden py-3 sm:py-0">
+        <div className="max-w-[1400px] w-[90%] sm:w-[85%] mx-auto flex flex-col sm:flex-row gap-3 items-center justify-between h-full">
           {/* Search Box (320px) */}
-          <div className="relative w-[320px]">
+          <div className="relative w-full sm:w-[320px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-soft" />
             <input
               type="text"
@@ -212,7 +212,7 @@ export default function SettingsPage() {
           </div>
           
           {/* Action Buttons */}
-          <div className="flex items-center gap-2 shrink-0 font-mono text-xs">
+          <div className="flex flex-wrap justify-center items-center gap-2 shrink-0 font-mono text-xs">
             <button
               type="button"
               onClick={() => {
@@ -255,7 +255,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Main Settings Grid */}
-      <div className="max-w-[1400px] w-[85%] mx-auto flex flex-col">
+      <div className="max-w-[1400px] w-[90%] sm:w-[85%] mx-auto flex flex-col">
         <SettingsSection
           id="fonts-section"
           title="1. Fonts"

@@ -106,7 +106,7 @@ export default function Home() {
         {/* Large Mechanical Counter */}
         <div className="relative flex flex-col items-center gap-2 mb-12">
           <div className="flex items-end">
-            <div className="text-[10rem] md:text-[14rem] font-serif font-bold text-foreground leading-none tracking-tighter tabular-nums flex items-baseline">
+            <div className="text-[6rem] sm:text-[9rem] md:text-[14rem] font-serif font-bold text-foreground leading-none tracking-tighter tabular-nums flex items-baseline">
               {loadingSpeed}
               <div className="w-4 md:w-8 h-[0.7em] bg-primary ml-4 animate-blink self-center" />
             </div>
