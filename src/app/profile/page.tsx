@@ -331,7 +331,7 @@ export default function ProfilePage() {
                               <th className="py-2 font-normal text-right">Speed</th>
                               <th className="py-2 font-normal text-right">Accuracy</th>
                               <th className="py-2 font-normal text-right">Mode</th>
-                              <th className="py-2 font-normal text-right">Layout</th>
+                              <th className="py-2 font-normal text-right hidden sm:table-cell">Layout</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-border-hairline text-muted">
@@ -343,7 +343,7 @@ export default function ProfilePage() {
                                 <td className="py-2 text-right font-bold text-primary">{s.wpm} WPM</td>
                                 <td className="py-2 text-right text-success">{s.accuracy}%</td>
                                 <td className="py-2 text-right capitalize">{s.mode}</td>
-                                <td className="py-2 text-right capitalize">{s.layout || "qwerty"}</td>
+                                <td className="py-2 text-right capitalize hidden sm:table-cell">{s.layout || "qwerty"}</td>
                               </tr>
                             ))}
                           </tbody>

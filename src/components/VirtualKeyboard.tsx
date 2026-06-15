@@ -148,17 +148,17 @@ function VirtualKeyboard({
 
   return (
     <div 
-      className={`w-full rounded-[18px] p-4 sm:p-6 select-none transition-all duration-300 ${
+      className={`w-full rounded-[18px] p-3 sm:p-6 select-none transition-all duration-300 ${
         isFocusMode 
           ? "bg-transparent border border-transparent" 
           : "bg-card/30 border border-border-hairline shadow-xs"
       }`}
     >
-      <div className="w-full flex flex-col gap-1 sm:gap-2 [--key-width:calc((100vw-40px)/15)] sm:[--key-width:40px] md:[--key-width:54px]">
+      <div className="w-full flex flex-col gap-1 sm:gap-2 [--key-width:calc((100vw-48px)/15)] sm:[--key-width:40px] md:[--key-width:54px]">
         {keyboardRows.map((row, rowIndex) => (
           <div
             key={rowIndex}
-            className="flex justify-center gap-1.5 w-full"
+            className="flex justify-center gap-1 sm:gap-1.5 w-full"
             style={{
               paddingLeft: rowIndex === 1 ? "calc(var(--key-width) / 2)" : rowIndex === 2 ? "var(--key-width)" : "0",
             }}
@@ -170,7 +170,7 @@ function VirtualKeyboard({
               return (
                 <div
                   key={key}
-                  className={`flex items-center justify-center font-mono text-[9px] sm:text-[13px] font-semibold border rounded-[6px] sm:rounded-[8px] transition-all duration-200 ease-out ${styleClass}`}
+                  className={`flex items-center justify-center font-mono text-[9px] sm:text-[13px] font-semibold border rounded-[4px] sm:rounded-[8px] transition-all duration-200 ease-out ${styleClass}`}
                   style={{
                     width: isSpace ? "calc(var(--key-width) * 6.5)" : "var(--key-width)",
                     height: "var(--key-width)",

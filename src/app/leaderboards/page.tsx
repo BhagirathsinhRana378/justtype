@@ -325,7 +325,7 @@ export default function LeaderboardsPage() {
       <td className="py-4">
         <div className="h-4 w-10 bg-muted/15 rounded ml-auto" />
       </td>
-      <td className="py-4 text-right pr-4">
+      <td className="py-4 text-right pr-4 hidden sm:table-cell">
         <div className="h-4 w-16 bg-muted/15 rounded ml-auto" />
       </td>
     </tr>
@@ -347,7 +347,7 @@ export default function LeaderboardsPage() {
           transition={{
             layout: { type: "spring", stiffness: 350, damping: 32 }
           }}
-          className="max-w-md w-full bg-card/85 backdrop-blur-md border border-border-hairline rounded-xl p-8 shadow-2xl flex flex-col gap-6 relative z-10"
+          className="max-w-md w-full bg-card/85 backdrop-blur-md border border-border-hairline rounded-xl p-5 sm:p-8 shadow-2xl flex flex-col gap-6 relative z-10"
         >
           {/* Header */}
           <div className="flex flex-col items-center text-center gap-3">
@@ -559,7 +559,7 @@ export default function LeaderboardsPage() {
           <div className="lg:col-span-2 flex flex-col gap-6">
             
             {/* Leaderboard panel */}
-            <div className="bg-card border border-border-hairline rounded-lg p-6 flex flex-col gap-4 shadow-sm">
+            <div className="bg-card border border-border-hairline rounded-lg p-4 sm:p-6 flex flex-col gap-4 shadow-sm">
               <h2 className="text-lg font-serif text-foreground flex items-center gap-2">
                 <Medal className="w-5 h-5 text-primary" />
                 <span>Tactile High Scores</span>
@@ -573,7 +573,7 @@ export default function LeaderboardsPage() {
                       <th className="py-2 font-normal">Typist</th>
                       <th className="py-2 font-normal text-right">Speed</th>
                       <th className="py-2 font-normal text-right">Accuracy</th>
-                      <th className="py-2 font-normal text-right">Layout</th>
+                      <th className="py-2 font-normal text-right hidden sm:table-cell">Layout</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border-hairline text-muted">
@@ -614,7 +614,7 @@ export default function LeaderboardsPage() {
                             <td className="py-3 text-right">
                               {`${entry.accuracy}%`}
                             </td>
-                            <td className="py-3 text-right capitalize">{entry.layout}</td>
+                            <td className="py-3 text-right capitalize hidden sm:table-cell">{entry.layout}</td>
                           </motion.tr>
                         );
                       })
@@ -659,7 +659,7 @@ export default function LeaderboardsPage() {
           <div className="flex flex-col gap-8">
             
             {/* Daily Challenge card */}
-            <div className="bg-card border border-border-hairline rounded-lg p-6 flex flex-col gap-4 shadow-sm">
+            <div className="bg-card border border-border-hairline rounded-lg p-4 sm:p-6 flex flex-col gap-4 shadow-sm">
               <div className="flex items-center gap-2 text-primary">
                 <Flame className="w-5 h-5 animate-bounce" />
                 <h3 className="text-sm font-serif font-bold">Daily challenge</h3>
@@ -684,7 +684,7 @@ export default function LeaderboardsPage() {
 
             {/* Submit registry panel */}
             {personalBest && !userNickname && (
-              <div className="bg-card border border-border-hairline rounded-lg p-6 flex flex-col gap-4 shadow-sm">
+              <div className="bg-card border border-border-hairline rounded-lg p-4 sm:p-6 flex flex-col gap-4 shadow-sm">
                 <h3 className="text-sm font-serif text-foreground font-semibold flex items-center gap-2">
                   <Star className="w-4 h-4 text-primary" />
                   <span>Register Your Score</span>

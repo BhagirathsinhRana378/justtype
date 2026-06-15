@@ -104,9 +104,9 @@ export default function Home() {
         </div>
 
         {/* Large Mechanical Counter */}
-        <div className="relative flex flex-col items-center gap-2 mb-12">
+        <div className="relative flex flex-col items-center gap-2 mb-6 sm:mb-12">
           <div className="flex items-end">
-            <div className="text-[6rem] sm:text-[9rem] md:text-[14rem] font-serif font-bold text-foreground leading-none tracking-tighter tabular-nums flex items-baseline">
+            <div className="text-[4.5rem] xs:text-[6rem] sm:text-[9rem] md:text-[14rem] font-serif font-bold text-foreground leading-none tracking-tighter tabular-nums flex items-baseline">
               {loadingSpeed}
               <div className="w-4 md:w-8 h-[0.7em] bg-primary ml-4 animate-blink self-center" />
             </div>
@@ -204,44 +204,44 @@ export default function Home() {
       </div>
 
       {/* Hero Section */}
-      <section className="relative px-6 pt-24 pb-16 md:pt-40 md:pb-32 max-w-7xl mx-auto w-full flex flex-col items-center text-center gap-12 z-20">
-        <div className="flex flex-col items-center gap-8 max-w-4xl">
+      <section className="relative px-4 sm:px-6 pt-16 pb-12 sm:pt-28 sm:pb-20 md:pt-40 md:pb-32 max-w-7xl mx-auto w-full flex flex-col items-center text-center gap-6 sm:gap-12 z-20">
+        <div className="flex flex-col items-center gap-4 sm:gap-8 max-w-4xl">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-card border border-border-hairline text-xs text-primary font-medium tracking-wide uppercase shadow-sm">
             <Activity className="w-3.5 h-3.5" /> AI-Driven Performance
           </div>
-          <h1 className="text-6xl md:text-8xl font-serif font-light text-foreground leading-[1.05] tracking-tight">
+          <h1 className="text-3xl xs:text-4xl sm:text-6xl md:text-8xl font-serif font-light text-foreground leading-[1.05] tracking-tight">
             The art of <span className="italic font-normal text-primary underline decoration-primary/20 underline-offset-8">speed</span> & <br className="hidden md:block" />
             mechanical <span className="font-normal italic">precision.</span>
           </h1>
-          <p className="text-muted text-xl md:text-2xl max-w-2xl leading-relaxed font-sans font-light">
+          <p className="text-muted text-base sm:text-lg md:text-xl lg:text-2xl max-w-2xl leading-relaxed font-sans font-light">
             Beyond the words-per-minute. JustType analyzes your rhythmic cadence to build a unique mechanical profile of your typing.
           </p>
-          <div className="flex flex-col sm:flex-row items-stretch gap-6 w-full sm:w-auto mt-6">
+          <div className="flex flex-col sm:flex-row items-stretch gap-4 sm:gap-6 w-full sm:w-auto mt-3 sm:mt-6">
             <Link
               href="/type"
-              className="group flex items-center justify-center gap-3 px-10 py-5 bg-primary hover:bg-primary-hover text-white font-bold rounded-2xl shadow-xl shadow-primary/25 transition-all duration-300 transform hover:-translate-y-1"
+              className="group flex items-center justify-center gap-3 px-6 py-3 sm:px-8 sm:py-4 md:px-10 md:py-5 bg-primary hover:bg-primary-hover text-white font-bold rounded-[14px] sm:rounded-2xl shadow-xl shadow-primary/25 transition-all duration-300 transform hover:-translate-y-1"
             >
-              <span className="text-lg">JustType..Sprint</span>
+              <span className="text-sm sm:text-base md:text-lg">JustType..Sprint</span>
               <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link
               href="/ai-coach"
-              className="flex items-center justify-center gap-3 px-10 py-5 bg-card hover:bg-card-elevated border border-border-hairline text-foreground font-bold rounded-2xl transition-all duration-300"
+              className="flex items-center justify-center gap-3 px-6 py-3 sm:px-8 sm:py-4 md:px-10 md:py-5 bg-card hover:bg-card-elevated border border-border-hairline text-foreground font-bold rounded-[14px] sm:rounded-2xl transition-all duration-300"
             >
               <Sparkles className="w-5 h-5 text-primary" />
-              <span className="text-lg">Consult Coach</span>
+              <span className="text-sm sm:text-base md:text-lg">Consult Coach</span>
             </Link>
           </div>
         </div>
 
         {/* Visual Keyboard Illustration - Overhauled for v4.0.2 */}
-        <div className="w-full max-w-6xl mt-12 relative group">
+        <div className="w-full max-w-6xl mt-6 sm:mt-12 relative group">
           <div className="absolute -inset-4 bg-[conic-gradient(from_0deg,transparent,rgba(var(--primary-rgb),0.1),transparent)] blur-3xl opacity-30 group-hover:opacity-60 transition-opacity duration-1000 animate-[spin_10s_linear_infinite]" />
           
-          <div className="relative bg-card border border-border-hairline rounded-[3rem] p-1 md:p-1.5 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.4)] backdrop-blur-2xl overflow-hidden group-hover:border-primary/20 transition-colors duration-500">
-            <div className="bg-background/40 rounded-[2.8rem] p-6 md:p-12 border border-white/5">
+          <div className="relative bg-card border border-border-hairline rounded-[1.5rem] sm:rounded-[2.5rem] md:rounded-[3rem] p-1 md:p-1.5 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.4)] backdrop-blur-2xl overflow-hidden group-hover:border-primary/20 transition-colors duration-500">
+            <div className="bg-background/40 rounded-[1.3rem] sm:rounded-[2.3rem] md:rounded-[2.8rem] p-4 sm:p-8 md:p-12 border border-white/5">
               
-              <div className="flex flex-col md:flex-row items-center justify-between mb-16 gap-8">
+              <div className="flex flex-col md:flex-row items-center justify-between mb-8 sm:mb-12 md:mb-16 gap-4 sm:gap-8 text-left">
                 <div className="flex items-center gap-8">
                   <div className="relative">
                     <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
@@ -255,30 +255,30 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4 bg-card/50 px-6 py-3 rounded-2xl border border-border-hairline">
-                  <div className="flex flex-col items-center px-4 border-r border-border-hairline">
+                <div className="flex items-center gap-2 sm:gap-4 bg-card/50 px-3 py-2 sm:px-6 sm:py-3 rounded-xl sm:rounded-2xl border border-border-hairline">
+                  <div className="flex flex-col items-center px-2 sm:px-4 border-r border-border-hairline">
                     <span className="text-[9px] uppercase font-bold text-muted mb-0.5 tracking-widest">Latency</span>
                     <span className="text-sm font-mono font-bold text-success">14ms</span>
                   </div>
-                  <div className="flex flex-col items-center px-4 border-r border-border-hairline">
+                  <div className="flex flex-col items-center px-2 sm:px-4 border-r border-border-hairline">
                     <span className="text-[9px] uppercase font-bold text-muted mb-0.5 tracking-widest">Uptime</span>
                     <span className="text-sm font-mono font-bold text-foreground">99.9%</span>
                   </div>
-                  <div className="flex items-center gap-2 px-4">
+                  <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-4">
                     <Signal className="w-3.5 h-3.5 text-primary" />
                     <span className="text-[10px] font-mono font-bold text-muted-soft">ENCRYPTED</span>
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 mb-16">
-                <div className="lg:col-span-3 flex flex-col gap-6 order-2 lg:order-1">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 lg:gap-12 mb-8 sm:mb-12 md:mb-16">
+                <div className="lg:col-span-3 flex flex-col gap-4 sm:gap-6 order-2 lg:order-1">
                   {[
                     { label: "Burst Cadence", color: "bg-primary" },
                     { label: "Stability Index", color: "bg-success" },
                     { label: "Buffer Pressure", color: "bg-warning" }
                   ].map((spark, i) => (
-                    <div key={i} className="bg-card/30 p-4 rounded-2xl border border-border-hairline">
+                    <div key={i} className="bg-card/30 p-4 rounded-xl sm:rounded-2xl border border-border-hairline">
                       <div className="flex justify-between items-center mb-4">
                         <span className="text-[10px] uppercase font-bold text-muted tracking-wider">{spark.label}</span>
                         <div className={`w-1.5 h-1.5 rounded-full ${spark.color}`} />
@@ -300,11 +300,11 @@ export default function Home() {
                 </div>
 
                 <div className="lg:col-span-6 order-1 lg:order-2">
-                  <div className="grid grid-cols-10 gap-2 md:gap-3">
+                  <div className="grid grid-cols-10 gap-1 xs:gap-1.5 sm:gap-2 md:gap-3">
                     {Array.from({ length: 30 }).map((_, i) => (
                       <div 
                         key={i} 
-                        className={`aspect-square rounded-xl border border-border-hairline flex items-center justify-center text-sm font-mono transition-all duration-700 relative overflow-hidden group/key
+                        className={`aspect-square rounded-sm xs:rounded-md sm:rounded-lg md:rounded-xl border border-border-hairline flex items-center justify-center text-[9px] xs:text-[10px] sm:text-xs md:text-sm font-mono transition-all duration-700 relative overflow-hidden group/key
                           ${[7, 12, 15, 22, 28].includes(i) 
                             ? 'bg-primary/10 border-primary/40 text-primary shadow-[0_0_20px_rgba(var(--primary-rgb),0.15)] scale-110 z-10' 
                             : 'bg-background/20 text-muted-soft/30 hover:bg-background/40 hover:text-muted-soft hover:scale-105'
@@ -321,7 +321,7 @@ export default function Home() {
                       </div>
                     ))}
                   </div>
-                  <div className="mt-8 flex justify-center">
+                  <div className="mt-4 sm:mt-6 md:mt-8 flex justify-center">
                     <div className="flex items-center gap-6 px-6 py-2 rounded-full bg-primary/5 border border-primary/10 text-[10px] font-mono text-primary font-bold tracking-[0.2em] uppercase">
                       <Waves className="w-3.5 h-3.5 animate-pulse" /> Kinetic Feedback Active
                     </div>
@@ -343,19 +343,19 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 pt-8 border-t border-border-hairline">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 pt-4 sm:pt-6 md:pt-8 border-t border-border-hairline">
                 {[
                   { label: "Burst Speed", val: "114", unit: "wpm", icon: Zap, color: "text-primary" },
                   { label: "Stability", val: "94.2", unit: "%", icon: Activity, color: "text-accent-teal" },
                   { label: "Latency", val: "12", unit: "ms", icon: MousePointer2, color: "text-accent-amber" },
                   { label: "Growth", val: "+12", unit: "%", icon: Trophy, color: "text-success" }
                 ].map((stat, i) => (
-                  <div key={i} className="flex flex-col items-center md:items-start gap-1 p-4 rounded-2xl hover:bg-card/30 transition-colors group/stat">
+                  <div key={i} className="flex flex-col items-center md:items-start gap-1 p-4 rounded-2xl hover:bg-card/30 transition-colors group/stat text-left">
                     <div className="flex items-center gap-2 text-muted-soft group-hover/stat:text-foreground transition-colors mb-1">
                       <stat.icon className={`w-3.5 h-3.5 ${stat.color}`} />
                       <span className="text-[9px] uppercase font-bold tracking-[0.15em]">{stat.label}</span>
                     </div>
-                    <div className="text-3xl font-serif font-bold text-foreground flex items-baseline gap-1">
+                    <div className="text-xl sm:text-2xl md:text-3xl font-serif font-bold text-foreground flex items-baseline gap-1">
                       {stat.val}<span className="text-xs font-sans font-normal text-muted">{stat.unit}</span>
                     </div>
                   </div>
@@ -366,54 +366,54 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="relative border-t border-border-hairline bg-card/30 backdrop-blur-md px-6 py-24 md:py-32 z-20">
+      <section className="relative border-t border-border-hairline bg-card/30 backdrop-blur-md px-4 sm:px-6 py-12 sm:py-20 md:py-28 lg:py-32 z-20">
         <div className="max-w-6xl mx-auto w-full">
-          <div className="flex flex-col md:flex-row justify-between items-end gap-8 mb-20">
-            <div className="max-w-xl">
-              <h2 className="text-4xl md:text-5xl font-serif text-foreground mb-6 leading-tight">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 sm:gap-8 mb-8 sm:mb-12 md:mb-20">
+            <div className="max-w-xl text-left">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-serif text-foreground mb-3 sm:mb-6 leading-tight">
                 Refining the <span className="italic">tactile</span> connection.
               </h2>
-              <p className="text-muted text-lg leading-relaxed">
+              <p className="text-muted text-sm sm:text-base md:text-lg leading-relaxed">
                 Standard tests tell you how fast you type. JustType tells you how you improve by identifying the micro-patterns in your muscle memory.
               </p>
             </div>
-            <div className="flex gap-4">
-              <div className="w-12 h-12 rounded-full border border-border-hairline flex items-center justify-center text-muted hover:text-primary transition-colors cursor-help">
-                <History className="w-5 h-5" />
+            <div className="flex gap-4 shrink-0">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-border-hairline flex items-center justify-center text-muted hover:text-primary transition-colors cursor-help">
+                <History className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
-              <div className="w-12 h-12 rounded-full border border-border-hairline flex items-center justify-center text-muted hover:text-primary transition-colors cursor-help">
-                <Timer className="w-5 h-5" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-border-hairline flex items-center justify-center text-muted hover:text-primary transition-colors cursor-help">
+                <Timer className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
             </div>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-            <div className="group p-8 rounded-[2rem] bg-background border border-border-hairline hover:border-primary/30 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/5">
-              <div className="w-14 h-14 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
-                <KeyboardIcon className="w-7 h-7" />
+ 
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8 lg:gap-10 text-left">
+            <div className="group p-5 sm:p-8 rounded-[1.25rem] sm:rounded-[1.75rem] md:rounded-[2rem] bg-background border border-border-hairline hover:border-primary/30 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/5">
+              <div className="w-10 h-10 sm:w-14 sm:h-14 bg-primary/10 text-primary rounded-xl sm:rounded-2xl flex items-center justify-center mb-4 sm:mb-8 group-hover:scale-110 transition-transform">
+                <KeyboardIcon className="w-5 h-5 sm:w-7 sm:h-7" />
               </div>
-              <h3 className="text-2xl font-serif text-foreground mb-4">Keystroke Latency</h3>
-              <p className="text-muted leading-relaxed">
+              <h3 className="text-lg sm:text-xl md:text-2xl font-serif text-foreground mb-2 sm:mb-4">Keystroke Latency</h3>
+              <p className="text-muted text-xs sm:text-sm md:text-base leading-relaxed">
                 Tracks precise intervals between each letter input to pin down slow transitions and sluggish finger response times.
               </p>
             </div>
-
-            <div className="group p-8 rounded-[2rem] bg-background border border-border-hairline hover:border-primary/30 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/5">
-              <div className="w-14 h-14 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
-                <Sparkles className="w-7 h-7" />
+ 
+            <div className="group p-5 sm:p-8 rounded-[1.25rem] sm:rounded-[1.75rem] md:rounded-[2rem] bg-background border border-border-hairline hover:border-primary/30 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/5">
+              <div className="w-10 h-10 sm:w-14 sm:h-14 bg-primary/10 text-primary rounded-xl sm:rounded-2xl flex items-center justify-center mb-4 sm:mb-8 group-hover:scale-110 transition-transform">
+                <Sparkles className="w-5 h-5 sm:w-7 sm:h-7" />
               </div>
-              <h3 className="text-2xl font-serif text-foreground mb-4">Adaptive AI Coach</h3>
-              <p className="text-muted leading-relaxed">
+              <h3 className="text-lg sm:text-xl md:text-2xl font-serif text-foreground mb-2 sm:mb-4">Adaptive AI Coach</h3>
+              <p className="text-muted text-xs sm:text-sm md:text-base leading-relaxed">
                 Generates phonetically readable practice combinations focusing exactly on your target weak letters to patch mistakes.
               </p>
             </div>
-
-            <div className="group p-8 rounded-[2rem] bg-background border border-border-hairline hover:border-primary/30 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/5">
-              <div className="w-14 h-14 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
-                <BarChart3 className="w-7 h-7" />
+ 
+            <div className="group p-5 sm:p-8 rounded-[1.25rem] sm:rounded-[1.75rem] md:rounded-[2rem] bg-background border border-border-hairline hover:border-primary/30 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/5">
+              <div className="w-10 h-10 sm:w-14 sm:h-14 bg-primary/10 text-primary rounded-xl sm:rounded-2xl flex items-center justify-center mb-4 sm:mb-8 group-hover:scale-110 transition-transform">
+                <BarChart3 className="w-5 h-5 sm:w-7 sm:h-7" />
               </div>
-              <h3 className="text-2xl font-serif text-foreground mb-4">Regression Modeling</h3>
-              <p className="text-muted leading-relaxed">
+              <h3 className="text-lg sm:text-xl md:text-2xl font-serif text-foreground mb-2 sm:mb-4">Regression Modeling</h3>
+              <p className="text-muted text-xs sm:text-sm md:text-base leading-relaxed">
                 Applies standard trend regressions over your historical logs to map accuracy gains and forecast future typing speed benchmarks.
               </p>
             </div>
@@ -421,27 +421,27 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="px-6 py-24 md:py-40 max-w-4xl mx-auto text-center flex flex-col items-center gap-8 relative z-20">
+      <section className="px-4 sm:px-6 py-12 sm:py-16 md:py-24 lg:py-32 max-w-4xl mx-auto text-center flex flex-col items-center gap-4 sm:gap-8 relative z-20">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200%] h-[200%] bg-primary/[0.02] rounded-full blur-[100px] pointer-events-none" />
-        <h2 className="text-4xl md:text-6xl font-serif text-foreground leading-tight">
+        <h2 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-serif text-foreground leading-tight">
           Ready to break your <br /> <span className="italic text-primary">limitations?</span>
         </h2>
-        <p className="text-muted max-w-md text-lg leading-relaxed">
+        <p className="text-muted max-w-md text-sm sm:text-base md:text-lg leading-relaxed">
           Run your first test offline. Your data is stored locally in your browser to maintain total privacy.
         </p>
         <Link
           href="/type"
-          className="group relative px-10 py-5 bg-foreground text-background hover:bg-primary hover:text-white font-bold rounded-2xl transition-all duration-500 overflow-hidden"
+          className="group relative px-6 py-3 sm:px-8 sm:py-4 md:px-10 md:py-5 bg-foreground text-background hover:bg-primary hover:text-white font-bold rounded-xl sm:rounded-2xl transition-all duration-500 overflow-hidden"
         >
-          <span className="relative z-10">Begin Free Test</span>
+          <span className="relative z-10 text-sm sm:text-base md:text-lg">Begin Free Test</span>
           <div className="absolute inset-0 bg-primary translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
         </Link>
       </section>
 
       {/* SEO Content Section */}
-      <section className="px-6 py-24 border-t border-border-hairline bg-background z-20">
+      <section className="px-4 sm:px-6 py-12 sm:py-20 md:py-24 border-t border-border-hairline bg-background z-20">
         <div className="max-w-4xl mx-auto prose prose-neutral dark:prose-invert prose-headings:font-serif">
-          <h2 className="text-3xl md:text-5xl font-serif text-foreground mb-12 text-center">
+          <h2 className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-serif text-foreground mb-6 sm:mb-12 text-center">
             Master Your Keyboard Skills with our <span className="italic">Online Typing Test</span>
           </h2>
           

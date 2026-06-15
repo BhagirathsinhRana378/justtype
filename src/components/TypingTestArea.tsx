@@ -34,6 +34,12 @@ export default function TypingTestArea({
   const [translateY, setTranslateY] = useState(0);
   
   const wordRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const lastValRef = useRef(typedInput);
+
+  // Sync ref with typedInput state (e.g. on restart)
+  useEffect(() => {
+    lastValRef.current = typedInput;
+  }, [typedInput]);
 
   const focusInput = () => {
     if (inputRef.current) {
@@ -145,18 +151,28 @@ export default function TypingTestArea({
   // Handle typing inputs
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
-    const currentLength = typedInput.length;
-    const nextLength = val.length;
-
-    if (nextLength < currentLength) {
-      const diff = currentLength - nextLength;
-      for (let i = 0; i < diff; i++) {
-        registerKeystroke("Backspace");
-      }
-    } else {
-      const newChar = val[val.length - 1];
-      registerKeystroke(newChar);
+    const prevVal = lastValRef.current;
+    
+    let commonPrefixLength = 0;
+    const minLength = Math.min(prevVal.length, val.length);
+    while (
+      commonPrefixLength < minLength &&
+      prevVal[commonPrefixLength] === val[commonPrefixLength]
+    ) {
+      commonPrefixLength++;
     }
+
+    const backspacesNeeded = prevVal.length - commonPrefixLength;
+    for (let i = 0; i < backspacesNeeded; i++) {
+      registerKeystroke("Backspace");
+    }
+
+    const charsToAdd = val.substring(commonPrefixLength);
+    for (let i = 0; i < charsToAdd.length; i++) {
+      registerKeystroke(charsToAdd[i]);
+    }
+
+    lastValRef.current = val;
   };
 
   return (
@@ -204,9 +220,9 @@ export default function TypingTestArea({
           onBlur={() => setIsFocused(false)}
           className="absolute opacity-0 pointer-events-none w-0 h-0"
           autoComplete="off"
-          autoCapitalize="off"
+          autoCapitalize="none"
           autoCorrect="off"
-          spellCheck="false"
+          spellCheck={false}
           disabled={status === "completed"}
         />
 

@@ -10,9 +10,9 @@ interface SettingRowProps {
 
 export default function SettingRow({ title, description, children }: SettingRowProps) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[45fr_55fr] gap-6 py-3 min-h-[64px] border-b border-border-hairline/30 items-center w-full overflow-hidden">
+    <div className="grid grid-cols-1 lg:grid-cols-[45fr_55fr] gap-4 lg:gap-6 px-1 xs:px-2 sm:px-0 py-4 lg:py-3 min-h-[64px] border-b border-border-hairline/30 items-center w-full overflow-hidden">
       {/* LEFT: Setting info (45%) */}
-      <div className="flex flex-col w-full pr-4">
+      <div className="flex flex-col w-full pr-0 lg:pr-4">
         <h4 className="text-[15px] font-medium text-foreground leading-snug">
           {title}
         </h4>

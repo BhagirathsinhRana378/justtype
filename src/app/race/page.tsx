@@ -180,7 +180,7 @@ export default function RaceLobby() {
                   <FileText className="w-3.5 h-3.5 text-primary" /> 2. Word Count
                 </label>
                 <div className="flex flex-wrap items-center gap-2">
-                  <div className="flex gap-1.5">
+                  <div className="flex flex-wrap gap-1.5">
                     {WORD_COUNTS.map((wc) => (
                       <button
                         key={wc.id}

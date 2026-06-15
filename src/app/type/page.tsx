@@ -989,7 +989,7 @@ export default function TypePage() {
           <div className="w-full flex flex-col md:flex-row items-stretch gap-6 mb-6">
             
             {/* Left Column: WPM and Accuracy stacked vertically */}
-            <div className="flex flex-col justify-center items-start md:w-[185px] gap-6 pl-4 select-none shrink-0 text-left">
+            <div className="flex flex-row md:flex-col justify-around md:justify-center items-center md:items-start w-full md:w-[185px] gap-6 px-4 py-2 md:py-0 select-none shrink-0 text-left">
               <div>
                 <span className="text-muted-soft text-xs font-sans tracking-widest uppercase font-bold block mb-0.5">wpm</span>
                 <span className="text-[68px] md:text-[84px] font-black text-primary leading-none block tracking-tighter">{wpm}</span>
@@ -1476,7 +1476,7 @@ export default function TypePage() {
               </div>
               
               {/* Right Column (5/12): Configurations */}
-              <div className="md:col-span-5 flex flex-col gap-4 border-l border-border-hairline/25 pl-0 md:pl-6">
+              <div className="md:col-span-5 flex flex-col gap-4 border-t md:border-t-0 md:border-l border-border-hairline/25 pt-6 md:pt-0 pl-0 md:pl-6">
                 
                 {/* Generation Mode */}
                 <div className="flex flex-col gap-2">

@@ -609,7 +609,7 @@ export default function ThemeSettings({ searchQuery: parentSearchQuery }: ThemeS
                   type="button"
                   onClick={() => handleSelectTheme(theme.id)}
                   style={tileStyle}
-                  className={`w-full h-9 pl-8 pr-8 rounded-[8px] flex items-center justify-between select-none relative cursor-pointer transition-all duration-150 ${
+                  className={`w-full h-9 pl-7 pr-3 sm:pl-8 sm:pr-8 rounded-[8px] flex items-center justify-between select-none relative cursor-pointer transition-all duration-150 ${
                     isSelected 
                       ? "border-2 shadow-xs" 
                       : "border hover:brightness-[1.06] hover:shadow-2xs"

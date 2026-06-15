@@ -453,7 +453,7 @@ export default function AICoachPage() {
             <div className="lg:col-span-5 flex flex-col gap-8 sticky top-8">
               
               {/* Chat container */}
-              <div className="bg-card border border-border-hairline rounded-xl flex flex-col h-[680px] shadow-sm overflow-hidden">
+              <div className="bg-card border border-border-hairline rounded-xl flex flex-col h-[500px] md:h-[680px] max-h-[85vh] shadow-sm overflow-hidden w-full">
                 
                 {/* Header */}
                 <div className="p-5 bg-background border-b border-border-hairline flex items-center justify-between">

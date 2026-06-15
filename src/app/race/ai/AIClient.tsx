@@ -130,7 +130,7 @@ export default function AIClient() {
   const aiIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const {
-    typedInput, wpm, accuracy, progress, handleInput, reset: resetEngine, feedback, totalKeystrokes, isComplete,
+    typedInput, wpm, accuracy, progress, handleInput, reset: resetEngine, feedback, totalKeystrokes, isComplete, completedWordsHistory,
   } = useRaceEngine(words, { strict: strictnessParam === "strict" });
 
   const typedWords = useMemo(() => typedInput.split(" "), [typedInput]);
@@ -262,7 +262,20 @@ export default function AIClient() {
 
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (phase !== "racing") return;
-    const val = e.target.value;
+    let val = e.target.value;
+
+    // Sanitize mobile keyboard auto-capitalization on completed history prefix
+    const expectedPrefix = completedWordsHistory && completedWordsHistory.length > 0 
+      ? completedWordsHistory.join(" ") + " " 
+      : "";
+    if (expectedPrefix && val.length >= expectedPrefix.length) {
+      const valPrefix = val.substring(0, expectedPrefix.length);
+      if (valPrefix.toLowerCase() === expectedPrefix.toLowerCase() && valPrefix !== expectedPrefix) {
+        val = expectedPrefix + val.substring(expectedPrefix.length);
+        e.target.value = val;
+      }
+    }
+
     const metrics = handleInput(val, e.nativeEvent);
 
     if (metrics.isError) {
@@ -420,7 +433,7 @@ export default function AIClient() {
 
           {phase === "racing" && (
             <div className="flex flex-col">
-              <div className="grid grid-cols-4 gap-2 p-2.5 bg-[#0d0711]/60 border-b border-border-hairline/30">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-2.5 bg-[#0d0711]/60 border-b border-border-hairline/30">
                 {[
                   { label: "Position", value: `#${position}`, icon: <Trophy className="w-3.5 h-3.5 text-accent-amber" />, c: "text-accent-amber font-extrabold" },
                   { label: "Speed", value: `${wpm} WPM`, icon: <Activity className="w-3.5 h-3.5 text-primary" />, c: "text-primary font-bold" },
@@ -432,7 +445,7 @@ export default function AIClient() {
                       {s.icon}
                       <span className="text-[8px] sm:text-[9px] uppercase font-bold tracking-wider text-muted-soft">{s.label}</span>
                     </div>
-                    <div className={`text-sm sm:text-base font-black font-mono tracking-tight leading-none ${s.c}`}>{s.value}</div>
+                    <div className={`text-xs xs:text-sm sm:text-base font-black font-mono tracking-tight leading-none ${s.c}`}>{s.value}</div>
                   </div>
                 ))}
               </div>
@@ -480,7 +493,7 @@ export default function AIClient() {
                 onPaste={(e) => e.preventDefault()}
                 data-revert={revertTrigger}
                 className="absolute opacity-0 w-0 h-0 pointer-events-none"
-                autoComplete="off" autoCapitalize="off" autoCorrect="off" spellCheck={false} />
+                autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck={false} />
             </div>
           )}
 

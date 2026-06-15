@@ -15,7 +15,7 @@ export function SegmentedControl<T extends string>({
   onChange: (value: T) => void;
 }) {
   return (
-    <div className="flex bg-background border border-border-hairline p-0.5 rounded-lg font-mono text-[11.5px] select-none">
+    <div className="flex flex-wrap gap-0.5 sm:gap-0 w-full sm:w-auto bg-background border border-border-hairline p-0.5 rounded-lg font-mono text-[11.5px] select-none">
       {options.map((opt) => {
         const isActive = selected === opt.value;
         return (
@@ -23,7 +23,7 @@ export function SegmentedControl<T extends string>({
             key={opt.value}
             type="button"
             onClick={() => onChange(opt.value)}
-            className={`px-3 py-1 rounded-[6px] text-[11.5px] font-semibold cursor-pointer transition-colors capitalize select-none ${
+            className={`flex-1 sm:flex-initial text-center px-3 py-1 rounded-[6px] text-[11.5px] font-semibold cursor-pointer transition-colors capitalize select-none ${
               isActive
                 ? "bg-primary text-background font-bold"
                 : "text-muted hover:text-foreground"
