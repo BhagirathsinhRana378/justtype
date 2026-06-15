@@ -81,6 +81,9 @@ export default function FriendRaceClient() {
         resetEngine();
         setRaceElapsed(0);
         setResults([]);
+        if (inputRef.current) {
+          inputRef.current.value = "";
+        }
         setTimeout(() => inputRef.current?.focus(), 100);
         break;
       case "tick":
@@ -544,7 +547,7 @@ export default function FriendRaceClient() {
                 </div>
               )}
 
-              <input ref={inputRef} type="text" value={typedInput} onChange={onChange}
+              <input ref={inputRef} type="text" defaultValue="" onChange={onChange}
                 onKeyDown={onKeyDown}
                 onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
                 onPaste={(e) => e.preventDefault()}

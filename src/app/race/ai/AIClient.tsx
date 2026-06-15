@@ -161,6 +161,10 @@ export default function AIClient() {
     aiFinishedRef.current = false;
     startTimeRef.current = 0;
 
+    if (inputRef.current) {
+      inputRef.current.value = "";
+    }
+
     let cd = 3;
     const ci = setInterval(() => {
       cd -= 1;
@@ -487,7 +491,7 @@ export default function AIClient() {
                 </div>
               )}
 
-              <input ref={inputRef} type="text" value={typedInput} onChange={onChange}
+              <input ref={inputRef} type="text" defaultValue="" onChange={onChange}
                 onKeyDown={onKeyDown}
                 onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
                 onPaste={(e) => e.preventDefault()}

@@ -41,6 +41,16 @@ export default function TypingTestArea({
     lastValRef.current = typedInput;
   }, [typedInput]);
 
+  // Reset input DOM value and diff tracker ref when test restarts (status becomes idle)
+  useEffect(() => {
+    if (status === "idle") {
+      if (inputRef.current) {
+        inputRef.current.value = "";
+      }
+      lastValRef.current = "";
+    }
+  }, [status]);
+
   const focusInput = () => {
     if (inputRef.current) {
       inputRef.current.focus();
@@ -214,7 +224,7 @@ export default function TypingTestArea({
         <input
           ref={inputRef}
           type="text"
-          value={typedInput}
+          defaultValue=""
           onChange={handleInputChange}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
